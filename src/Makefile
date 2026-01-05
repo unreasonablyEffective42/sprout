@@ -5,8 +5,8 @@ SRC_DIR := src
 OUT_DIR := out
 TARGET := $(OUT_DIR)/cell
 
-SRCS := $(SRC_DIR)/cell.cpp $(SRC_DIR)/fraction.cpp $(SRC_DIR)/value.cpp
-OBJS := $(OUT_DIR)/cell.o $(OUT_DIR)/fraction.o $(OUT_DIR)/value.o
+SRCS := $(SRC_DIR)/cell.cpp $(SRC_DIR)/rational.cpp $(SRC_DIR)/value.cpp
+OBJS := $(OUT_DIR)/cell.o $(OUT_DIR)/rational.o $(OUT_DIR)/value.o
 
 .PHONY: all clean
 

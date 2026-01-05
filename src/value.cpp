@@ -1,18 +1,23 @@
 #include "value.h"
 
-#include "cell.h"
+#include <iostream>
+#include <complex>
+
 
 Value::Value() : v(List{}) {}
 Value::Value(int i) : v(i) {}
 Value::Value(double n) : v(n) {}
-Value::Value(Fraction f) : v(std::move(f)) {}
+Value::Value(Rational r) : v(std::move(r)) {}
+Value::Value(Complex cx) : v(std::move(cx)) {}
 Value::Value(bool b) : v(b) {}
 Value::Value(char c) : v(c) {}
-Value::Value(const char* cs) : v(std::string(cs)) {}
 Value::Value(std::string s) : v(std::move(s)) {}
 Value::Value(Symbol sym) : v(std::move(sym)) {}
 Value::Value(List l) : v(std::move(l)) {}
 
+Symbol::Symbol(std::string name_){
+    this->name = name_;
+}
 bool isNil(const Value& val) {
     if (auto p = std::get_if<List>(&val.v)) {
         return !*p;
@@ -26,8 +31,9 @@ bool isString(const Value& val) { return std::holds_alternative<std::string>(val
 bool isChar(const Value& val) { return std::holds_alternative<char>(val.v); }
 bool isList(const Value& val) { return std::holds_alternative<List>(val.v); }
 bool isInt(const Value& val) { return std::holds_alternative<int>(val.v); }
-bool isFraction(const Value& val) { return std::holds_alternative<Fraction>(val.v); }
+bool isRational(const Value& val) { return std::holds_alternative<Rational>(val.v); }
 bool isSymbol(const Value& val) { return std::holds_alternative<Symbol>(val.v); }
+bool isComplex(const Value& val) { return std::holds_alternative<Complex>(val.v); }
 
 Value nil = {};
 
@@ -53,10 +59,27 @@ std::ostream& operator<<(std::ostream& os, const Value& val) {
         os << std::get<Symbol>(val.v);
     } else if (isList(val)) {
         os << std::get<List>(val.v);
-    } else if (isFraction(val)) {
-        os << std::get<Fraction>(val.v);
+    } else if (isRational(val)) {
+        os << std::get<Rational>(val.v);
+    } else if (isComplex(val)) {
+        os << std::get<Complex>(val.v);
     } else {
         os << "invalid value";
     }
     return os;
+}
+
+bool operator==(const Symbol& a, const Symbol& b) {
+    return a.name == b.name;
+}
+
+bool operator!=(const Symbol& a, const Symbol& b) {
+    return a.name != b.name;
+}
+
+bool operator==(const Value& a, const Value& b) {
+    return a.v == b.v;
+}
+bool operator!=(const Value& a, const Value& b) {
+    return a.v != b.v;
 }

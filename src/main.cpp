@@ -1,10 +1,21 @@
 #include "value.h"
 #include "token.h"
 #include "cell.h"
-#include "fraction.h"
+#include "rational.h"
+#include "lexer.h"
+
+#include <iostream>
+#include <string>
+#include <vector>
+
 
 int main() {
-    Token tok1 = Token(TokenKind::UNQUOTESPLICE);
-    Token tok2 = Token(TokenKind::STRING,"test");
-    std::cout << tok1 << std::endl << tok2;
+    std::string src = "(23 hello 3.4 8/3 2+3i\n 8.34 -2-4i) ()\n \"this is a string\" -> : . #t #f \"s\" i int bool rational float complex char string symbol list vec ";
+    Lexer lex = Lexer(src);
+    Token current = lex.peek();
+    while (current != Lexer::eof) {
+        std::cout << current << std::endl;
+        current = lex.next();
+    }
+    return 0;
 }

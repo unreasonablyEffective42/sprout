@@ -8,9 +8,9 @@
 enum class TokenKind {
   END,   
   NUMBER,
-  SYMBOL,
-  BOOLEAN,
-  CHARACTER,
+  IDENT,
+  BOOL,
+  CHAR,
   STRING,
   LAMBDA,
   COND,
@@ -20,22 +20,36 @@ enum class TokenKind {
   UNQUOTESPLICE,
   DEFINE,
   LIST,
+  CONS,
+  LET,
   LETS,
   LETR,
   LPAREN,
   RPAREN,
+  COLON,
+  ARROW,
   DOT,
-  TYPE
+  TYPE_IDENT,
+  SHIFT,
+  RESET,
+  FORCE,
+  DO,
+  NIL
 };
 
 struct Token {
-    TokenKind kind;
+    TokenKind kind = TokenKind::NIL;
     std::optional<Value> value = std::nullopt;
+    int line = 0;
+    int column =0;
     
-    Token(TokenKind kind_);
-    Token(TokenKind kind_, Value value_);
+    Token();
+    Token(TokenKind kind_, int line_, int column_);
+    Token(TokenKind kind_, Value value_, int line_, int column_);
+
 };
 
+bool operator==(const Token& a, const Token& b);
 std::ostream& operator<<(std::ostream& os, const Token& tok);
 
 #endif
