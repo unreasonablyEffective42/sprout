@@ -14,6 +14,7 @@ const char* toString(TokenKind k) {
         case TokenKind::STRING:        return "STRING       ";
         case TokenKind::LAMBDA:        return "LAMBDA       ";
         case TokenKind::COND:          return "COND         ";
+        case TokenKind::CLAUSE:        return "CLAUSE       ";
         case TokenKind::QUOTE:         return "QUOTE        ";
         case TokenKind::QQUOTE:        return "QQUOTE       "; 
         case TokenKind::UNQUOTE:       return "UNQUOTE      "; 
@@ -30,6 +31,8 @@ const char* toString(TokenKind k) {
         case TokenKind::ARROW:         return "ARROW        ";
         case TokenKind::DOT:           return "DOT          "; 
         case TokenKind::TYPE_IDENT:    return "TYPE_IDENT   ";
+        case TokenKind::VAR_TYPE:      return "VAR_TYPE     ";
+        case TokenKind::RETURN_TYPE:   return "RETURN_TYPE  ";
         case TokenKind::SHIFT:         return "SHIFT        ";
         case TokenKind::RESET:         return "RESET        ";
         case TokenKind::FORCE:         return "FORCE        ";

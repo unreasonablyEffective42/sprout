@@ -15,6 +15,7 @@ struct Lexer;
 Value parseNumber(const std::string& candidate);
 
 void skipWhitespace(Lexer& lex);
+void skipComment(Lexer& lex); 
 
 Token lexNumber(Lexer& lex);
 Token lexParen(Lexer& lex);
@@ -24,25 +25,25 @@ Token lexArrow(Lexer& lex);
 Token lexColon(Lexer& lex);
 Token lexBool(Lexer& lex);
 Token lexDot(Lexer& lex);
+Token lexQuote(Lexer& lex);
 
 
 struct Lexer {
     inline static Token eof = Token(TokenKind::END,0,0);
     std::string src;
-
-    int pos = 0;
-    int column = 0;
-    int line = 0;
+    int pos = 0, column = 0, line = 0;
     int size;
  
-    Token current;
-    Token previous;
+    std::deque<Token> buffer;
+    std::size_t index = 0;
     
     Lexer(std::string src_);
 
-    void advance();
-    const Token& peek();
-    const Token& next();
+    Token advance();
+    const Token& peek(std::size_t lookahead);
+    Token next();
+    void backup();
+    void ensure(std::size_t i);
 };
 
 #endif

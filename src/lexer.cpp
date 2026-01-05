@@ -42,7 +42,10 @@ static const std::regex RE_COMPLEX(
   ")$")
 );
 
-static const std::string numsyms = "+-/i.";
+static const std::string numsyms     = "+-/i.";
+static const std::string opsyms      = "+-*/^%$!&|=<>";
+static const std::string quoteStarts = "'`,";
+
 
 Value parseNumber(const std::string& candidate) {
     if (std::regex_match(candidate, RE_COMPLEX)) { 
@@ -63,9 +66,29 @@ void skipWhitespace(Lexer& lex) {
         if(lex.src[lex.pos] == '\n') {
             lex.line++;
             lex.column = 0;
+            lex.pos++;
+            continue;
         }
         lex.pos++;
         lex.column++;
+    }
+}
+
+void skipComment(Lexer& lex) {
+    if (lex.src[lex.pos] == ';') {
+        while(lex.pos < lex.size) {
+            if (lex.src[lex.pos] == '\n') {
+                lex.pos++;
+                lex.line++;
+                lex.column=0;
+                break;
+            }
+            lex.pos++;
+            lex.column++;
+        }
+        //if (lex.pos != lex.size) { throw std::runtime_error("comment not terminated by newline"); }
+    } else {
+        throw std::runtime_error("skipComment called on non comment char: " + std::string(1, lex.src[lex.pos]));
     }
 }
 
@@ -96,13 +119,51 @@ Token lexParen(Lexer& lex) {
     }
 }
 
+Token lexQuote(Lexer& lex) {
+    int startColumn = lex.column;
+    if (lex.pos < lex.size) {
+        switch(lex.src[lex.pos]){
+            case '\'':
+                lex.pos++;
+                lex.column++;
+                return {TokenKind::QUOTE, lex.line, startColumn};
+            case '`':
+                lex.pos++;
+                lex.column++;
+                return {TokenKind::QQUOTE, lex.line, startColumn};
+            case ',':
+                if (lex.pos + 1 < lex.size && lex.src[lex.pos + 1] == '@') {
+                    lex.pos += 2;
+                    lex.column += 2;
+                    return {TokenKind::UNQUOTESPLICE, lex.line, startColumn};
+                }
+                lex.pos++;
+                lex.column++;
+                return {TokenKind::UNQUOTE, lex.line, startColumn};
+            default:
+                throw std::runtime_error("lexQuote called on nonQuote char: " + std::string(1,lex.src[lex.pos]));
+        }
+    }
+    throw std::runtime_error("fell off the end during lexing");
+}
+
 Token lexSymbol(Lexer& lex) {
     int startColumn = lex.column;
     std::string parse = "";
-    while(lex.pos < lex.size && (isdigit(lex.src[lex.pos]) || isalpha(lex.src[lex.pos]))){
-        parse+=lex.src[lex.pos];
-        lex.pos++;
-        lex.column++;
+    if (isalpha(lex.src[lex.pos])) {
+        while(lex.pos < lex.size && ((isdigit(lex.src[lex.pos]) || isalpha(lex.src[lex.pos])) || lex.src[lex.pos] == '-' || lex.src[lex.pos] == '?')){
+            parse+=lex.src[lex.pos];
+            lex.pos++;
+            lex.column++;
+        }
+    } else if (opsyms.contains(lex.src[lex.pos])) {
+         while(lex.pos < lex.size && opsyms.contains(lex.src[lex.pos])) {
+            parse+=lex.src[lex.pos];
+            lex.pos++;
+            lex.column++;
+         }
+    } else {
+        throw std::runtime_error("invalid symbol start char: " + std::string(1, lex.src[lex.pos]));
     }
     static const std::unordered_set<std::string> type_idents = {
         "int",
@@ -118,6 +179,14 @@ Token lexSymbol(Lexer& lex) {
     };
     if (type_idents.contains(parse)) {
         return {TokenKind::TYPE_IDENT, Value(parse), lex.line, startColumn};
+    } else if (parse == "quote") {
+        return {TokenKind::QUOTE, lex.line, startColumn};
+    } else if (parse == "qquote") {
+        return {TokenKind::QQUOTE, lex.line, startColumn};
+    } else if (parse == "unquote") {
+        return {TokenKind::UNQUOTE, lex.line, startColumn};
+    } else if (parse == "unquote-splice") {
+        return {TokenKind::UNQUOTESPLICE, lex.line, startColumn};
     }
     return {TokenKind::IDENT, Value(Symbol(parse)), lex.line, startColumn};
 }
@@ -158,7 +227,6 @@ Token lexArrow(Lexer& lex) {
 Lexer::Lexer(std::string src_){
     this->src = src_;
     this->size = src.size();
-    this->advance();
 }
 
 Token lexColon(Lexer& lex) {
@@ -198,18 +266,14 @@ Token lexDot(Lexer& lex) {
     throw std::runtime_error{"lexDot called after end of source"};
 }
 
-void Lexer::advance(){
-    Token temp;
+Token Lexer::advance(){
     char cur, nxt;
-    if (pos >= size) {
-        this->current = eof;
-        return;
-    }
-    if (pos < size){
+    if (pos >= size) { 
+        return eof;
+    } else if (pos < size){
         while(true) {
             if (pos >= size) {
-                this->current = eof;
-                return;
+                return eof;
             }
             nxt = '\0';                                  //reset nxt to end of string
             cur = this->src[this->pos];                  //set current 
@@ -218,62 +282,66 @@ void Lexer::advance(){
                 skipWhitespace(*this);
                 continue;
             } else if (isdigit(cur) || (cur == 'i' && nxt != 'n') || (nxt != '\0' && cur == '-' && (isdigit(nxt) || nxt == 'i'))) {
-                temp = lexNumber(*this); 
-                this->previous = std::move(current);
-                this->current = std::move(temp);
+                return lexNumber(*this); 
                 break;
             } else if (cur == '(' || cur == ')') {
-                temp = lexParen(*this);
-                this->previous = std::move(current);
-                this->current = std::move(temp);
+                return lexParen(*this);
                 break; 
-            } else if (isalpha(cur)) {
-                temp = lexSymbol(*this); 
-                this->previous = std::move(current);
-                this->current = std::move(temp);
+            } else if (cur == '-' && nxt == '>') {
+                return lexArrow(*this);
+                break;   
+            } else if (isalpha(cur) || opsyms.contains(cur)) {
+                return lexSymbol(*this); 
                 break;  
             } else if (cur == '"') {
-                temp = lexString(*this); 
-                this->previous = std::move(current);
-                this->current = std::move(temp);
+                return lexString(*this); 
                 break;  
-            } else if (cur == '-' && nxt == '>') {
-                temp = lexArrow(*this);
-                this->previous = std::move(current);
-                this->current = std::move(temp);
-                break;   
-            } else if (cur == ':') {
-                temp = lexColon(*this);
-                this->previous = std::move(current);
-                this->current = std::move(temp);
+            }else if (cur == ':') {
+                return lexColon(*this);
                 break;   
             } else if (cur == '.') {
-                temp = lexDot(*this);
-                this->previous = std::move(current);
-                this->current = std::move(temp);
+                return lexDot(*this);
                 break;   
             } else if (cur == '#') {
-                temp = lexBool(*this);
-                this->previous = std::move(current);
-                this->current = std::move(temp);
+                return lexBool(*this); 
                 break;   
+            } else if (quoteStarts.contains(cur)){
+                return lexQuote(*this);
+                break;
+            } else if (cur == ';') {
+                skipComment(*this);
+                continue;
             } else {
                 //TODO
-                throw std::runtime_error{"unable to lex character: " + cur};
+                throw std::runtime_error{"unable to lex character: " + std::string(1,cur)};
             }
         }
-    } else if(this->current != eof) {
-        this->current = eof;
     } else {
-        ; //do nothing
+        return eof;
     }
 }
 
-const Token& Lexer::peek() {
-    return this->current;
+const Token& Lexer::peek(std::size_t lookahead = 0) {
+    ensure(index + lookahead);
+    return buffer[index + lookahead];
 }
 
-const Token& Lexer::next() {
-    this->advance();
-    return this->current;
+Token Lexer::next() {
+    ensure(index);
+    Token t = buffer[index++];
+    if (index >0 && index > 8) {
+        buffer.erase(buffer.begin(), buffer.begin()+index);
+        index = 0;
+    }
+    return t;
+}
+
+void Lexer::backup() {
+    if (index >0 ) { --index; }
+}
+
+void Lexer::ensure(std::size_t i) {
+    while (buffer.size() <= i) {
+        buffer.push_back(advance());
+    }
 }

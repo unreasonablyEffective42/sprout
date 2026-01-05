@@ -10,12 +10,25 @@
 
 
 int main() {
-    std::string src = "(23 hello 3.4 8/3 2+3i\n 8.34 -2-4i) ()\n \"this is a string\" -> : . #t #f \"s\" i int bool rational float complex char string symbol list vec ";
-    Lexer lex = Lexer(src);
-    Token current = lex.peek();
-    while (current != Lexer::eof) {
-        std::cout << current << std::endl;
-        current = lex.next();
+    const std::vector<std::string> sources = {
+        "(23 hello 3.4 8/3 2+3i)",
+        "(define (x : int) (cons 1 2))",
+        "\"this is a string\" 'x #t #f -> : .",
+        "(list vec rational float complex char string symbol list)",
+        "`(,thing1 ,thing2 ,@(some stuff)",
+        "+ - / <+ ==> && *-*",
+        "(some stuff) ;a comment"
+    };
+
+    for (const auto& src : sources) {
+        std::cout << "SOURCE: " << src << std::endl;
+        Lexer lex(src);
+        Token current = lex.next();
+        while (current.kind != TokenKind::END) {
+            std::cout << current << std::endl;
+            current = lex.next();
+        }
+        std::cout << "----" << std::endl;
     }
     return 0;
 }
