@@ -8,9 +8,11 @@
 #include <string>
 #include <variant>
 
+struct Value;
+template <typename CarT, typename CdrT = CarT>
 struct Cell;
 
-using List = std::shared_ptr<const Cell>;
+using List = std::shared_ptr<const Cell<Value, Value>>;
 
 struct Symbol {
     std::string name;

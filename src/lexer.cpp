@@ -227,6 +227,7 @@ Token lexArrow(Lexer& lex) {
 Lexer::Lexer(std::string src_){
     this->src = src_;
     this->size = src.size();
+    this->current = advance();
 }
 
 Token lexColon(Lexer& lex) {
@@ -321,27 +322,43 @@ Token Lexer::advance(){
     }
 }
 
-const Token& Lexer::peek(std::size_t lookahead = 0) {
-    ensure(index + lookahead);
-    return buffer[index + lookahead];
+void Lexer::swapCurrent(Token t) {
+    current = std::move(t);
+    has_previous = false;
+}
+
+const Token& Lexer::peek(std::size_t lookahead) {
+    if (lookahead == 0) {
+        return current;
+    }
+    ensure(lookahead);
+    return buffer[lookahead - 1];
 }
 
 Token Lexer::next() {
-    ensure(index);
-    Token t = buffer[index++];
-    if (index >0 && index > 8) {
-        buffer.erase(buffer.begin(), buffer.begin()+index);
-        index = 0;
+    Token old = current;
+    if (!buffer.empty()) {
+        current = buffer.front();
+        buffer.pop_front();
+    } else {
+        current = advance();
     }
-    return t;
+    previous = old;
+    has_previous = true;
+    return old;
 }
 
 void Lexer::backup() {
-    if (index >0 ) { --index; }
+    if (!has_previous) {
+        return;
+    }
+    buffer.push_front(current);
+    current = previous;
+    has_previous = false;
 }
 
 void Lexer::ensure(std::size_t i) {
-    while (buffer.size() <= i) {
+    while (buffer.size() < i) {
         buffer.push_back(advance());
     }
 }

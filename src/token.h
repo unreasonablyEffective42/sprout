@@ -2,8 +2,15 @@
 #define SPROUT_LANG_TOKEN_H
  
 #include "value.h"
+#include "cell.h"
 #include <iostream>
+#include <memory>
 #include <optional>
+#include <sstream>
+#include <utility>
+#include <variant>
+#include <cstddef>
+#include <sstream>
 
 enum class TokenKind {
   END,   
@@ -52,8 +59,36 @@ struct Token {
 
 };
 
+// TokenList is a cons-list whose elements are TokenNode.
+// TokenNode is either a Token (atom) or a nested TokenList.
+struct TokenListNode;
+using TokenList = std::shared_ptr<const TokenListNode>;
+using TokenNode = std::variant<Token, TokenList>;
+
+struct TokenListNode : Cell<TokenNode, TokenList> {
+    TokenListNode(TokenNode a, TokenList d) : Cell<TokenNode, TokenList>(std::move(a), std::move(d)) {}
+};
+
+inline TokenList cons(TokenNode a, TokenList d) {
+    return std::make_shared<TokenListNode>(std::move(a), std::move(d));
+}
+
+inline const TokenNode& head(const TokenList& lst) { return lst->car; }
+inline const TokenList& tail(const TokenList& lst) { return lst->cdr; }
+
+std::ostream& operator<<(std::ostream& os, const TokenList& lst);
+std::ostream& operator<<(std::ostream& os, const TokenNode& node);
+std::size_t size(const TokenNode& node);
+std::size_t size(const TokenList& lst);
+
 bool operator==(const Token& a, const Token& b);
 std::ostream& operator<<(std::ostream& os, const Token& tok);
+
+inline std::string toString(const Token& tok) {
+    std::ostringstream oss;
+    oss << tok;
+    return oss.str();
+}
 
 inline bool isEnd(const Token& tok) { return tok.kind == TokenKind::END; }
 inline bool isNumber(const Token& tok) { return tok.kind == TokenKind::NUMBER; }
@@ -87,5 +122,6 @@ inline bool isReset(const Token& tok) { return tok.kind == TokenKind::RESET; }
 inline bool isForce(const Token& tok) { return tok.kind == TokenKind::FORCE; }
 inline bool isDo(const Token& tok) { return tok.kind == TokenKind::DO; }
 inline bool isNil(const Token& tok) { return tok.kind == TokenKind::NIL; }
+inline bool isTokenList(const TokenList& lst) { return static_cast<bool>(lst); }
 
 #endif

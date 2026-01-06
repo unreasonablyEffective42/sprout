@@ -2,18 +2,30 @@
 #define SPROUT_LANG_CELL_H
 
 #include "value.h"
+#include <utility>
 
+template <typename CarT, typename CdrT>
 struct Cell {
-    Value car;
-    Value cdr;
+    CarT car;
+    CdrT cdr;
 
-    Cell(Value a, Value d);
+    Cell(CarT a, CdrT d) : car(std::move(a)), cdr(std::move(d)) {}
 };
 
-List cons(Value a, Value d);
+template <typename CarT, typename CdrT>
+inline std::shared_ptr<const Cell<CarT, CdrT>> cons(CarT a, CdrT d) {
+    return std::make_shared<Cell<CarT, CdrT>>(std::move(a), std::move(d));
+}
 
-const Value& head(const List& lst);
-const Value& tail(const List& lst);
+template <typename CarT, typename CdrT>
+inline const CarT& head(const std::shared_ptr<const Cell<CarT, CdrT>>& lst) {
+    return lst->car;
+}
+
+template <typename CarT, typename CdrT>
+inline const CdrT& tail(const std::shared_ptr<const Cell<CarT, CdrT>>& lst) {
+    return lst->cdr;
+}
 
 std::ostream& operator<<(std::ostream& os, const List& lst);
 

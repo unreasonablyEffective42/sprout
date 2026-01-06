@@ -3,32 +3,22 @@
 #include "cell.h"
 #include "rational.h"
 #include "lexer.h"
+#include "parser.h"
 
 #include <iostream>
 #include <string>
 #include <vector>
-
+#include <sstream>
 
 int main() {
-    const std::vector<std::string> sources = {
-        "(23 hello 3.4 8/3 2+3i)",
-        "(define (x : int) (cons 1 2))",
-        "\"this is a string\" 'x #t #f -> : .",
-        "(list vec rational float complex char string symbol list)",
-        "`(,thing1 ,thing2 ,@(some stuff)",
-        "+ - / <+ ==> && *-*",
-        "(some stuff) ;a comment"
+    std::string sources[] = {
+        "(cond (#t 3) (#f 4))",
+        "(1 2 (3 4 5))" 
     };
-
-    for (const auto& src : sources) {
-        std::cout << "SOURCE: " << src << std::endl;
-        Lexer lex(src);
-        Token current = lex.next();
-        while (current.kind != TokenKind::END) {
-            std::cout << current << std::endl;
-            current = lex.next();
-        }
-        std::cout << "----" << std::endl;
+    for (std::string src : sources) {
+        Lexer lex = Lexer(src); 
+        std::cout << "String to parse: " << src << std::endl;
+        std::cout << parse(lex) << std::endl;
     }
     return 0;
 }

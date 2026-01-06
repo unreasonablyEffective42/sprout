@@ -7,6 +7,7 @@
 #include "complex.h"
 
 #include <iostream>
+#include <deque>
 #include <string>
 #include <regex>
 
@@ -34,13 +35,16 @@ struct Lexer {
     int pos = 0, column = 0, line = 0;
     int size;
  
+    Token current = eof;
+    Token previous = eof;
+    bool has_previous = false;
     std::deque<Token> buffer;
-    std::size_t index = 0;
     
     Lexer(std::string src_);
 
     Token advance();
-    const Token& peek(std::size_t lookahead);
+    void swapCurrent(Token t);
+    const Token& peek(std::size_t lookahead = 0);
     Token next();
     void backup();
     void ensure(std::size_t i);
