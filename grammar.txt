@@ -3,7 +3,7 @@
   ------------------------------------------------------------
   Conventions / notes:
   - Token boundaries are explicit: whitespace, '(' , ')' , and '"' delimit tokens.
-  - ':' MUST have spaces around it in source (lexer/reader policy).
+  - ':' does not require spaces around it in source.
   - '->' is reserved (currently) and used only in signatures and arrow types.
   - Types are lowercase and reserved (cannot be used as value identifiers).
   - Identifiers are case-sensitive.
@@ -142,7 +142,7 @@ cond_clause    ::= LPAREN LPAREN expr RPAREN expr RPAREN ;
 
 (* -------------------- TYPED BINDINGS ----------------------- *)
 
-(* binder: (name : Type)  — ':' must be spaced in source *)
+(* binder: (name:Type) *)
 binder         ::= LPAREN IDENT COLON type RPAREN ;
 
 (* signatures are explicit; required in lambda/define-function *)
@@ -152,16 +152,17 @@ sig_params     ::= LPAREN RPAREN
                  | { binder } ;
 
 (* lambda: (lambda ( ...binders... -> Type ) bodyExpr) *)
+(* parsed as: (LAMBDA (PARAM_LIST (name type) ... (RETURN_TYPE Type)) bodyExpr) *)
 lambda_form    ::= "lambda" signature expr ;
 
 (* define:
-     value:    (define (x : int) expr)
-     function: (define foo ((x : int) -> int) expr)
+     value:    (define x:int expr)
+     function: (define foo (x:int y:int -> int) expr)
 *)
 define_form        ::= "define" define_value
                      | "define" define_function ;
 
-define_value       ::= binder expr ;
+define_value       ::= IDENT COLON type expr ;
 define_function    ::= IDENT signature expr ;
 
 (* let / lets / letr:

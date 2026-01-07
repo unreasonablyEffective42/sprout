@@ -11,12 +11,15 @@
 #include <variant>
 #include <cstddef>
 #include <sstream>
+#include <iterator>
+#include <stdexcept>
 
 enum class TokenKind {
   END,   
   NUMBER,
   IDENT,
   BOOL,
+  SYMBOL,
   CHAR,
   STRING,
   LAMBDA,
@@ -38,7 +41,9 @@ enum class TokenKind {
   ARROW,
   DOT,
   TYPE_IDENT,
+  TYPE_LIST,
   VAR_TYPE,
+  PARAM_LIST,
   RETURN_TYPE,
   SHIFT,
   RESET,
@@ -123,5 +128,60 @@ inline bool isForce(const Token& tok) { return tok.kind == TokenKind::FORCE; }
 inline bool isDo(const Token& tok) { return tok.kind == TokenKind::DO; }
 inline bool isNil(const Token& tok) { return tok.kind == TokenKind::NIL; }
 inline bool isTokenList(const TokenList& lst) { return static_cast<bool>(lst); }
+
+inline bool isTokenNodeList(const TokenNode& node) {
+    return std::holds_alternative<TokenList>(node);
+}
+
+inline bool isTokenNodeToken(const TokenNode& node) {
+    return std::holds_alternative<Token>(node);
+}
+
+inline const TokenList& asTokenList(const TokenNode& node) {
+    if (!isTokenNodeList(node)) {
+        throw std::runtime_error("expected TokenList node");
+    }
+    return std::get<TokenList>(node);
+}
+
+struct TokenListIterator {
+    using value_type = const TokenNode;
+    using reference = const TokenNode&;
+    using pointer = const TokenNode*;
+    using difference_type = std::ptrdiff_t;
+    using iterator_category = std::forward_iterator_tag;
+
+    TokenList cur;
+
+    explicit TokenListIterator(TokenList lst) : cur(std::move(lst)) {}
+
+    reference operator*() const { return head(cur); }
+    pointer operator->() const { return &head(cur); }
+
+    TokenListIterator& operator++() {
+        cur = tail(cur);
+        return *this;
+    }
+
+    TokenListIterator operator++(int) {
+        TokenListIterator tmp(*this);
+        ++(*this);
+        return tmp;
+    }
+
+    friend bool operator==(const TokenListIterator& a, const TokenListIterator& b) {
+        return a.cur == b.cur;
+    }
+    friend bool operator!=(const TokenListIterator& a, const TokenListIterator& b) {
+        return !(a == b);
+    }
+};
+
+struct TokenListRange {
+    TokenList lst;
+    explicit TokenListRange(TokenList l) : lst(std::move(l)) {}
+    TokenListIterator begin() const { return TokenListIterator(lst); }
+    TokenListIterator end() const { return TokenListIterator(TokenList{}); }
+};
 
 #endif

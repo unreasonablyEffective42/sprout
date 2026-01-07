@@ -13,6 +13,8 @@ Value::Value(bool b) : v(b) {}
 Value::Value(char c) : v(c) {}
 Value::Value(std::string s) : v(std::move(s)) {}
 Value::Value(Symbol sym) : v(std::move(sym)) {}
+Value::Value(Function fun) : v(std::move(fun)) {}
+Value::Value(Conditional cond) : v(std::move(cond)) {}
 Value::Value(List l) : v(std::move(l)) {}
 
 Symbol::Symbol(std::string name_){
@@ -33,6 +35,8 @@ bool isList(const Value& val) { return std::holds_alternative<List>(val.v); }
 bool isInt(const Value& val) { return std::holds_alternative<int>(val.v); }
 bool isRational(const Value& val) { return std::holds_alternative<Rational>(val.v); }
 bool isSymbol(const Value& val) { return std::holds_alternative<Symbol>(val.v); }
+bool isFunction(const Value& val) {return std::holds_alternative<Function>(val.v); }
+bool isConditional(const Value& val) {return std::holds_alternative<Conditional>(val.v); }
 bool isComplex(const Value& val) { return std::holds_alternative<Complex>(val.v); }
 
 Value nil = {};
@@ -40,6 +44,14 @@ Value nil = {};
 std::ostream& operator<<(std::ostream& os, const Symbol& sym) {
     os << "Symbol: " << sym.name;
     return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const Function& fun) {
+    os << "Function";
+}
+
+std::ostream& operator<<(std::ostream& os, const Conditional& fun) {
+    os << "Cond";
 }
 
 std::ostream& operator<<(std::ostream& os, const Value& val) {
@@ -63,6 +75,10 @@ std::ostream& operator<<(std::ostream& os, const Value& val) {
         os << std::get<Rational>(val.v);
     } else if (isComplex(val)) {
         os << std::get<Complex>(val.v);
+    } else if (isFunction(val)) {
+        os << std::get<Function>(val.v);
+    } else if (isConditional(val)) {
+        os << std::get<Conditional>(val.v);
     } else {
         os << "invalid value";
     }

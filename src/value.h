@@ -3,6 +3,7 @@
 
 #include "rational.h"
 #include "complex.h"
+
 #include <memory>
 #include <ostream>
 #include <string>
@@ -19,8 +20,19 @@ struct Symbol {
     Symbol(std::string name_);
 };
 
+struct Function {
+//    TokenNode params;
+//    TokenNode body;
+//    EnvPtr env;
+};
+
+struct Conditional {
+//    TokenNode clauses;
+ //   EnvPtr env
+};
+
 struct Value {
-    using V = std::variant<double, int, Rational, Complex, bool, char, std::string, Symbol, List>;
+    using V = std::variant<double, int, Rational, Complex, bool, char, std::string, Symbol, Function, Conditional, List>;
     V v;
 
     Value();
@@ -32,6 +44,8 @@ struct Value {
     Value(char c);
     Value(std::string s);
     Value(Symbol sym);
+    Value(Function fun);
+    Value(Conditional);
     Value(List l);
 };
 
@@ -44,12 +58,16 @@ bool isList(const Value& val);
 bool isInt(const Value& val);
 bool isRational(const Value& val);
 bool isSymbol(const Value& val);
+bool isFunction(const Value& val);
+bool isConditional(const Value& val);
 bool isComplex(const Value& val);
 
 extern Value nil;
 
 std::ostream& operator<<(std::ostream& os, const Value& val);
 std::ostream& operator<<(std::ostream& os, const Symbol& sym);
+std::ostream& operator<<(std::ostream& os, const Function& fun);
+std::ostream& operator<<(std::ostream& os, const Conditional& cond);
 bool operator==(const Symbol& a, const Symbol& b);
 bool operator!=(const Symbol& a, const Symbol& b);
 bool operator==(const Value& a, const Value& b);

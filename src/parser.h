@@ -27,5 +27,13 @@ inline bool isAtom(const Token& tok) {
             return false;
     }
 }
+void promoteIdent(Lexer& lex);
+TokenNode validateParams(TokenNode& params);
+TokenNode validateType(TokenNode& types);
+TokenNode unwrapIdent(Lexer& lex);
+TokenNode parseCond(Lexer& lex);
+TokenNode parseLambda(Lexer& lex);
 TokenList parseList(Lexer& lex);
+TokenNode parseType(Lexer& lex);
+
 TokenNode parse(Lexer& lex);

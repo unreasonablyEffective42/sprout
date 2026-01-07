@@ -10,9 +10,12 @@
 #include <vector>
 #include <sstream>
 
-int main() {
+int main() { 
     std::string sources[] = {
+        "(lambda (x:int -> int) (+ x 1))",
+        "(lambda (x:complex y:complex -> float) body)",
         "(cond (#t 3) (#f 4))",
+        "(x y z)",
         "(1 2 (3 4 5))" 
     };
     for (std::string src : sources) {

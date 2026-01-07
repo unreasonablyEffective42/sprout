@@ -11,6 +11,7 @@ const char* toString(TokenKind k) {
         case TokenKind::END:           return "END";
         case TokenKind::NUMBER:        return "NUMBER";
         case TokenKind::IDENT:         return "IDENT";
+        case TokenKind::SYMBOL:        return "SYMBOL";
         case TokenKind::BOOL:          return "BOOL";
         case TokenKind::CHAR:          return "CHAR";
         case TokenKind::STRING:        return "STRING";
@@ -33,7 +34,9 @@ const char* toString(TokenKind k) {
         case TokenKind::ARROW:         return "ARROW";
         case TokenKind::DOT:           return "DOT";
         case TokenKind::TYPE_IDENT:    return "TYPE_IDENT";
+        case TokenKind::TYPE_LIST:     return "TYPE_LIST";
         case TokenKind::VAR_TYPE:      return "VAR_TYPE";
+        case TokenKind::PARAM_LIST:    return "PARAM_LIST";
         case TokenKind::RETURN_TYPE:   return "RETURN_TYPE";
         case TokenKind::SHIFT:         return "SHIFT";
         case TokenKind::RESET:         return "RESET";
@@ -63,9 +66,10 @@ bool operator==(const Token& a, const Token& b) {
 }
 
 std::ostream& operator<<(std::ostream& os, const Token& tok) { 
-    os << "TOKEN[ kind=" << toString(tok.kind) << " value=";
-    if (tok.value) { os << *tok.value; }
-    else { os << "NULL"; }
+    os << "TOKEN[ kind=" << toString(tok.kind);
+    if (tok.value) {
+        os << " value=" << *tok.value;
+    }
     //os << " line=" << tok.line << " column=" << tok.column; 
     os << " ]";
     return os;
