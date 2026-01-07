@@ -3,6 +3,7 @@
 #include "token.h"
 #include "lexer.h"
 #include "parser.h"
+#include "ast.h"
 
 #include <iostream>
 #include <stack>
@@ -121,8 +122,9 @@ TokenNode validateParams(const TokenNode& params) {
                     continue;
                 case 4:{
                     TokenNode node_ = validateTypeList(node);
-                    Token ret = Token(TokenKind::RETURN_TYPE, 0,0); //TODO revisit to add the line and col
-                    TokenList params_ = cons(TokenNode{ret}, cons(node_, TokenList{}));
+                    auto ast = std::make_shared<AstNode>(node_);
+                    Token ret = Token(TokenKind::RETURN_TYPE, Value(ast), 0, 0); //TODO revisit to add the line and col
+                    TokenList params_ = cons(TokenNode{ret}, TokenList{});
 
                     while (!arguments.empty()) {
                         params_ = cons(TokenNode{arguments.top()}, params_);
@@ -214,7 +216,6 @@ TokenNode validateTypeList(const TokenNode& types) {
     TokenListIterator end(TokenList{});
     std::stack<TokenNode> typeNodes;
     const Token* errtok = nullptr;
-
     while (it != end) {
         const TokenNode& node = *it;
         switch (state) {
@@ -234,7 +235,8 @@ TokenNode validateTypeList(const TokenNode& types) {
                     }
                     throw std::runtime_error("expected type in type list, found: " + toString(tok));
                 }
-            case 1: // expect an arrow, skip it
+                break;
+            case 1: // expect an arrow, or a type/tokenlist  
                 if (isTokenNodeToken(node)) {
                     const Token& tok = std::get<Token>(node);
                     if (tok.kind == TokenKind::ARROW) {
@@ -243,13 +245,43 @@ TokenNode validateTypeList(const TokenNode& types) {
                         errtok = &tok;
                         continue;
                     }
-                    throw std::runtime_error("expected -> in type list, found: " + toString(tok));
-                }
+                     else if (tok.kind == TokenKind::TYPE_IDENT){
+                         typeNodes.push(node);
+                         it++;
+                         state = 2;
+                         continue;
+                    }
+                } else if (isTokenNodeList(node)) {
+                        typeNodes.push(validateTypeList(node));
+                        it++;
+                        state = 2;
+                        continue;
+                } 
+                break;
+                /* 
                 {
                     std::ostringstream oss;
                     oss << node;
                     throw std::runtime_error("expected -> in type list, found: " + oss.str());
                 }
+                */ 
+            case 2: //expect int 
+                if (isTokenNodeToken(node)) {
+                    const Token& tok = std::get<Token>(node);
+                    if (tok.kind == TokenKind::NUMBER) {
+                        typeNodes.push(node);
+                        it++;
+                        state = 1;
+                        continue;
+                    }
+                    throw std::runtime_error("expected number in composite type, found:" + toString(tok));
+                } 
+                {
+                    std::ostringstream oss;
+                    oss<<node;
+                    throw std::runtime_error("expected number in composite type, found:"  + oss.str());
+                }
+                break;
         }
     }
 
@@ -265,7 +297,8 @@ TokenNode validateTypeList(const TokenNode& types) {
         temp = cons(typeNodes.top(), temp);
         typeNodes.pop();
     }
-    return TokenNode{temp};
+    auto ast = std::make_shared<AstNode>(TokenNode{temp});
+    return TokenNode{Token(TokenKind::TYPE_IDENT,Value(ast),0,0)};
 }
 
 TokenNode unwrapIdent(Lexer& lex) {

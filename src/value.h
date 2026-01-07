@@ -3,6 +3,7 @@
 
 #include "rational.h"
 #include "complex.h"
+#include "ast_fwd.h"
 
 #include <memory>
 #include <ostream>
@@ -21,18 +22,18 @@ struct Symbol {
 };
 
 struct Function {
-//    TokenNode params;
-//    TokenNode body;
+    AstPtr params;
+    AstPtr body;
 //    EnvPtr env;
 };
 
 struct Conditional {
-//    TokenNode clauses;
+    AstPtr clauses;
  //   EnvPtr env
 };
 
 struct Value {
-    using V = std::variant<double, int, Rational, Complex, bool, char, std::string, Symbol, Function, Conditional, List>;
+    using V = std::variant<double, int, Rational, Complex, bool, char, std::string, Symbol, Function, AstPtr, Conditional, List>;
     V v;
 
     Value();
@@ -45,7 +46,8 @@ struct Value {
     Value(std::string s);
     Value(Symbol sym);
     Value(Function fun);
-    Value(Conditional);
+    Value(Conditional cont);
+    Value(AstPtr ptr);
     Value(List l);
 };
 

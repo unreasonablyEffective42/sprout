@@ -1,4 +1,5 @@
 #include "value.h"
+#include "ast_fwd.h"
 
 #include <iostream>
 #include <complex>
@@ -15,6 +16,7 @@ Value::Value(std::string s) : v(std::move(s)) {}
 Value::Value(Symbol sym) : v(std::move(sym)) {}
 Value::Value(Function fun) : v(std::move(fun)) {}
 Value::Value(Conditional cond) : v(std::move(cond)) {}
+Value::Value(AstPtr ast) : v(ast) {}
 Value::Value(List l) : v(std::move(l)) {}
 
 Symbol::Symbol(std::string name_){
@@ -35,8 +37,9 @@ bool isList(const Value& val) { return std::holds_alternative<List>(val.v); }
 bool isInt(const Value& val) { return std::holds_alternative<int>(val.v); }
 bool isRational(const Value& val) { return std::holds_alternative<Rational>(val.v); }
 bool isSymbol(const Value& val) { return std::holds_alternative<Symbol>(val.v); }
-bool isFunction(const Value& val) {return std::holds_alternative<Function>(val.v); }
-bool isConditional(const Value& val) {return std::holds_alternative<Conditional>(val.v); }
+bool isFunction(const Value& val) { return std::holds_alternative<Function>(val.v); }
+bool isConditional(const Value& val) { return std::holds_alternative<Conditional>(val.v); }
+bool isAstPtr(const Value& val) { return std::holds_alternative<AstPtr>(val.v); }
 bool isComplex(const Value& val) { return std::holds_alternative<Complex>(val.v); }
 
 Value nil = {};
@@ -79,6 +82,8 @@ std::ostream& operator<<(std::ostream& os, const Value& val) {
         os << std::get<Function>(val.v);
     } else if (isConditional(val)) {
         os << std::get<Conditional>(val.v);
+    } else if (isAstPtr(val)) {
+        os << std::get<AstPtr>(val.v);
     } else {
         os << "invalid value";
     }

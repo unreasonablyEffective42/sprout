@@ -12,7 +12,7 @@
 
 int main() { 
     std::string sources[] = {
-        "(lambda (x:int -> int) (+ x 1))",
+        "(lambda (x:(int->int) -> (vec int 4)) (+ x 1))",
         "(lambda (x:(int->int) y:int ->(int->int->int)) body)",
     };
     for (std::string src : sources) {
