@@ -149,22 +149,6 @@ Token lexQuote(Lexer& lex) {
 
 Token lexSymbol(Lexer& lex) {
     int startColumn = lex.column;
-    std::string parse = "";
-    if (isalpha(lex.src[lex.pos])) {
-        while(lex.pos < lex.size && ((isdigit(lex.src[lex.pos]) || isalpha(lex.src[lex.pos])) || lex.src[lex.pos] == '-' || lex.src[lex.pos] == '?')){
-            parse+=lex.src[lex.pos];
-            lex.pos++;
-            lex.column++;
-        }
-    } else if (opsyms.contains(lex.src[lex.pos])) {
-         while(lex.pos < lex.size && opsyms.contains(lex.src[lex.pos])) {
-            parse+=lex.src[lex.pos];
-            lex.pos++;
-            lex.column++;
-         }
-    } else {
-        throw std::runtime_error("invalid symbol start char: " + std::string(1, lex.src[lex.pos]));
-    }
     static const std::unordered_set<std::string> type_idents = {
         "int",
         "rational",
@@ -177,6 +161,23 @@ Token lexSymbol(Lexer& lex) {
         "list",
         "vec"
     };
+    std::string parse = "";
+    if (isalpha(lex.src[lex.pos])) {
+        while(lex.pos < lex.size && ((isdigit(lex.src[lex.pos]) || isalpha(lex.src[lex.pos])) || lex.src[lex.pos] == '-' || lex.src[lex.pos] == '?')){
+            parse+=lex.src[lex.pos];
+            lex.pos++;
+            lex.column++;
+            if (type_idents.contains(parse)) {break;}
+        }
+    } else if (opsyms.contains(lex.src[lex.pos])) {
+         while(lex.pos < lex.size && opsyms.contains(lex.src[lex.pos])) {
+            parse+=lex.src[lex.pos];
+            lex.pos++;
+            lex.column++;
+         }
+    } else {
+        throw std::runtime_error("invalid symbol start char: " + std::string(1, lex.src[lex.pos]));
+    }
     if (type_idents.contains(parse)) {
         return {TokenKind::TYPE_IDENT, Value(parse), lex.line, startColumn};
     } else if (parse == "quote") {
