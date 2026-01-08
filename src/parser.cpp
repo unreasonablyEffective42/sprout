@@ -258,13 +258,6 @@ TokenNode validateTypeList(const TokenNode& types) {
                         continue;
                 } 
                 break;
-                /* 
-                {
-                    std::ostringstream oss;
-                    oss << node;
-                    throw std::runtime_error("expected -> in type list, found: " + oss.str());
-                }
-                */ 
             case 2: //expect int 
                 if (isTokenNodeToken(node)) {
                     const Token& tok = std::get<Token>(node);
@@ -284,7 +277,6 @@ TokenNode validateTypeList(const TokenNode& types) {
                 break;
         }
     }
-
     if (state == 0) {
         throw std::runtime_error(
             "typeList did not terminate in a type, found " +
@@ -310,6 +302,53 @@ TokenNode unwrapIdent(Lexer& lex) {
     return TokenNode{Token(TokenKind::SYMBOL, Value(sym.name), temp.line, temp.column)};
 }
 
+/*
+ * (lambda (x:int y:int -> (int->int)) body)
+ * (define foo (x:int y:int -> (int->int)) body)
+ * (define foo (lambda (x:int y:int -> (int->int)) body))
+ * (define x:(vec int 3) 4)
+ */
+
+TokenNode parseDefine(Lexer& lex) {
+      Token root = lex.next();
+      if (lex.peek(0).kind != TokenKind::IDENT) {
+          throw std::runtime_error("expected symbol after define, found:" + toString(lex.peek(0)));
+      }
+      const TokenNode sym = parse(lex);
+      switch (lex.peek(0).kind) {
+          case TokenKind::COLON: { // (define x:int expr) or (define x:(vec int 3) expr)
+              (void) lex.next();
+              TokenNode type = parse(lex);
+              TokenNode expr = parse(lex);
+
+              if (isTokenNodeList(type)) {
+                  type = validateTypeList(type);
+              }
+              return TokenNode{cons(TokenNode{root}, cons(sym, cons(type, cons(expr, TokenList{}))))};
+          }
+
+          case TokenKind::LPAREN: { // (define foo (params ...) expr) or (define foo (lambda ...))
+              Token temp = lex.peek(1);
+              if (temp.kind == TokenKind::IDENT &&
+                  temp.value &&
+                  std::get<Symbol>(temp.value->v).name == "lambda") {
+                  TokenNode lambda = parse(lex);
+                  return TokenNode{cons(TokenNode{root}, cons(sym, cons(lambda, TokenList{})))};
+              }
+              TokenNode type = parse(lex);
+              TokenNode expr = parse(lex);
+              if (isTokenNodeList(type)) {
+                  type = validateParams(type);
+                  auto ast = std::make_shared<AstNode>(type);
+                  type = TokenNode{Token(TokenKind::TYPE_IDENT, Value(ast), 0, 0)};
+              }
+              return TokenNode{cons(TokenNode{root}, cons(sym, cons(type, cons(expr, TokenList{}))))};
+          }
+          default:
+              throw std::runtime_error("expected type or closure, found:" + toString(lex.peek(0)));
+      }
+  }
+
 TokenNode parse(Lexer& lex) {
     switch(lex.peek(0).kind) {
         case TokenKind::NUMBER:
@@ -329,6 +368,8 @@ TokenNode parse(Lexer& lex) {
                     return parseCond(lex);
                 case TokenKind::LAMBDA:
                     return parseLambda(lex);
+                case TokenKind::DEFINE:
+                    return parseDefine(lex);
                 default :
                     return TokenNode{parseList(lex)};
             }
@@ -338,3 +379,4 @@ TokenNode parse(Lexer& lex) {
             throw std::runtime_error("error" + toString(lex.peek(0)));
     }
 }
+

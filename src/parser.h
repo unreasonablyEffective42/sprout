@@ -36,5 +36,6 @@ TokenNode parseCond(Lexer& lex);
 TokenNode parseLambda(Lexer& lex);
 TokenList parseList(Lexer& lex);
 TokenNode parseType(Lexer& lex);
+TokenNode parseDefine(Lexer& lex);
 
 TokenNode parse(Lexer& lex);
