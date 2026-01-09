@@ -35,6 +35,7 @@ enum class TokenKind {
   LET,
   LETS,
   LETR,
+  LET_BINDING,
   LPAREN,
   RPAREN,
   COLON,
@@ -88,6 +89,8 @@ std::size_t size(const TokenList& lst);
 
 bool operator==(const Token& a, const Token& b);
 std::ostream& operator<<(std::ostream& os, const Token& tok);
+
+std::string toString(TokenKind k);
 
 inline std::string toString(const Token& tok) {
     std::ostringstream oss;

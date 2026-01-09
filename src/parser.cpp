@@ -12,8 +12,12 @@
 
 TokenList parseList(Lexer& lex) { //called after consuming a LPAREN   
     std::stack<TokenNode> elems;
-    while (lex.peek(0).kind != TokenKind::RPAREN) { //check if the current paren is an RPAREN
+    Token err = lex.peek(0);
+    while (lex.peek(0).kind != TokenKind::RPAREN && lex.peek(0).kind != TokenKind::END) { //check if the current paren is an RPAREN
         elems.push(parse(lex));
+    }
+    if (lex.peek(0).kind == TokenKind::END) {
+        throw std::runtime_error("unterminated list found at line:" + std::to_string(err.line) + " column:" +std::to_string(err.column) );
     }
     (void) lex.next();
     if (elems.empty()) {
@@ -122,8 +126,11 @@ TokenNode validateParams(const TokenNode& params) {
                     continue;
                 case 4:{
                     TokenNode node_ = validateTypeList(node);
+                    const TokenList& lst = asTokenList(node_);
+                    const TokenNode& headNode = head(lst);
+                    const Token& errtok = std::get<Token>(headNode);                   
                     auto ast = std::make_shared<AstNode>(node_);
-                    Token ret = Token(TokenKind::RETURN_TYPE, Value(ast), 0, 0); //TODO revisit to add the line and col
+                    Token ret = Token(TokenKind::RETURN_TYPE, Value(ast), errtok.line, errtok.column); //TODO revisit to add the line and col
                     TokenList params_ = cons(TokenNode{ret}, TokenList{});
 
                     while (!arguments.empty()) {
@@ -188,7 +195,8 @@ TokenNode validateParams(const TokenNode& params) {
                     if (tok.kind != TokenKind::TYPE_IDENT) {
                         throw std::runtime_error("expected type, found:" + toString(tok));
                     }
-                    Token ret = Token(TokenKind::RETURN_TYPE, *tok.value, tok.line, tok.column);
+                    auto ast = std::make_shared<AstNode>(TokenNode{tok});
+                    Token ret = Token(TokenKind::RETURN_TYPE, Value(ast), tok.line, tok.column);
                     TokenList params_ = cons(TokenNode{ret}, TokenList{});
 
                     while (!arguments.empty()) {
@@ -210,6 +218,14 @@ TokenNode validateParams(const TokenNode& params) {
 
 // (type arrow (type arrow type) arrow type)
 TokenNode validateTypeList(const TokenNode& types) {
+    if(isTokenNodeToken(types)){
+        const Token& type = std::get<Token>(types);
+        if(type.kind == TokenKind::TYPE_IDENT && type.value.has_value() && isAstPtr(*type.value)){
+            return types;
+        } else {
+            throw std::runtime_error("expected type list, found: " + toString(type));
+        }
+    }
     int state = 0;
     const TokenList& lst = asTokenList(types);
     TokenListIterator it(lst);
@@ -302,52 +318,170 @@ TokenNode unwrapIdent(Lexer& lex) {
     return TokenNode{Token(TokenKind::SYMBOL, Value(sym.name), temp.line, temp.column)};
 }
 
-/*
- * (lambda (x:int y:int -> (int->int)) body)
- * (define foo (x:int y:int -> (int->int)) body)
- * (define foo (lambda (x:int y:int -> (int->int)) body))
- * (define x:(vec int 3) 4)
- */
-
 TokenNode parseDefine(Lexer& lex) {
-      Token root = lex.next();
-      if (lex.peek(0).kind != TokenKind::IDENT) {
-          throw std::runtime_error("expected symbol after define, found:" + toString(lex.peek(0)));
-      }
-      const TokenNode sym = parse(lex);
-      switch (lex.peek(0).kind) {
-          case TokenKind::COLON: { // (define x:int expr) or (define x:(vec int 3) expr)
-              (void) lex.next();
-              TokenNode type = parse(lex);
-              TokenNode expr = parse(lex);
+    Token root = lex.next();
+    if (lex.peek(0).kind != TokenKind::IDENT) {
+        throw std::runtime_error("expected symbol after define, found:" + toString(lex.peek(0)));
+    }
+    const TokenNode sym = parse(lex);
+    switch (lex.peek(0).kind) {
+        case TokenKind::COLON: { // (define x:int expr) or (define x:(vec int 3) expr)
+            (void) lex.next();
+            TokenNode type = parse(lex);
+            TokenNode expr = parse(lex);
 
-              if (isTokenNodeList(type)) {
-                  type = validateTypeList(type);
-              }
-              return TokenNode{cons(TokenNode{root}, cons(sym, cons(type, cons(expr, TokenList{}))))};
-          }
+            if (isTokenNodeList(type)) {
+                type = validateTypeList(type);
+            }
+            return TokenNode{cons(TokenNode{root}, cons(sym, cons(type, cons(expr, TokenList{}))))};
+        }
 
-          case TokenKind::LPAREN: { // (define foo (params ...) expr) or (define foo (lambda ...))
-              Token temp = lex.peek(1);
-              if (temp.kind == TokenKind::IDENT &&
-                  temp.value &&
-                  std::get<Symbol>(temp.value->v).name == "lambda") {
-                  TokenNode lambda = parse(lex);
-                  return TokenNode{cons(TokenNode{root}, cons(sym, cons(lambda, TokenList{})))};
-              }
-              TokenNode type = parse(lex);
-              TokenNode expr = parse(lex);
-              if (isTokenNodeList(type)) {
-                  type = validateParams(type);
-                  auto ast = std::make_shared<AstNode>(type);
-                  type = TokenNode{Token(TokenKind::TYPE_IDENT, Value(ast), 0, 0)};
-              }
-              return TokenNode{cons(TokenNode{root}, cons(sym, cons(type, cons(expr, TokenList{}))))};
-          }
-          default:
-              throw std::runtime_error("expected type or closure, found:" + toString(lex.peek(0)));
-      }
-  }
+        case TokenKind::LPAREN: { // (define foo (params ...) expr) or (define foo (lambda ...))
+            Token temp = lex.peek(1);
+            if (temp.kind == TokenKind::IDENT &&
+                temp.value &&
+                std::get<Symbol>(temp.value->v).name == "lambda") {
+                TokenNode lambda = parse(lex);
+                return TokenNode{cons(TokenNode{root}, cons(sym, cons(lambda, TokenList{})))};
+            }
+            TokenNode type = parse(lex);
+            TokenNode expr = parse(lex);
+            if (isTokenNodeList(type)) {
+                type = validateParams(type);
+                auto ast = std::make_shared<AstNode>(type);
+                type = TokenNode{Token(TokenKind::TYPE_IDENT, Value(ast), 0, 0)};
+            }
+            return TokenNode{cons(TokenNode{root}, cons(sym, cons(type, cons(expr, TokenList{}))))};
+        }
+        default:
+            throw std::runtime_error("expected type or closure, found:" + toString(lex.peek(0)));
+    }
+}
+
+bool validateQuoteList(const TokenList& lst, int depth) {
+    for (TokenListIterator it(lst), end(TokenList{}); it != end; ++it) {
+        if (!validateQuote(*it, depth)) return false;
+    }
+    return true;
+}
+
+bool validateQuote(const TokenNode& node, int depth) {
+    if (isTokenNodeToken(node)) {
+        const Token& tok = std::get<Token>(node);
+        if (tok.kind == TokenKind::UNQUOTE || tok.kind == TokenKind::UNQUOTESPLICE) {
+            return depth > 0;
+        }
+        return true;
+    }
+    const TokenList& lst = asTokenList(node);
+    if (!lst) return true;
+
+    // If list begins with quote-like token, adjust depth for its argument.
+    const TokenNode& headNode = head(lst);
+    if (isTokenNodeToken(headNode)) {
+        const Token& headTok = std::get<Token>(headNode);
+        int nextDepth = depth;
+        if (headTok.kind == TokenKind::QQUOTE) nextDepth = depth + 1;
+        else if (headTok.kind == TokenKind::UNQUOTE || headTok.kind == TokenKind::UNQUOTESPLICE) {
+            if (depth == 0) return false;
+            nextDepth = depth - 1;
+        }
+        // validate the rest of the list at nextDepth
+        return validateQuoteList(tail(lst), nextDepth);
+    }
+    return validateQuoteList(lst, depth);
+}
+
+
+TokenNode parseQuote(Lexer& lex) {
+    Token root = lex.next();
+    TokenNode quoted = parse(lex);
+    int depth = (root.kind == TokenKind::QQUOTE) ? 1 : 0;
+    if (validateQuote(quoted,depth)) { return TokenNode{cons(TokenNode{root}, cons(quoted, TokenList {}))}; }
+    throw std::runtime_error("unreachable");
+} 
+/*
+(let ((x:int 0)
+      (y:(int->int) (lambda (z:int -> int) expr)))
+  body)
+*/
+TokenNode parseBinding(Lexer& lex){
+    Token lparen = lex.next();
+    TokenNode sym, type, val;
+    if (lex.peek(0).kind == TokenKind::IDENT){
+        sym = parse(lex); 
+        if (lex.peek(0).kind == TokenKind::COLON){
+            (void) lex.next();
+            if (lex.peek(0).kind == TokenKind::TYPE_IDENT){
+                type = parse(lex);
+            } else if (lex.peek(0).kind == TokenKind::LPAREN) {
+                type = parse(lex);
+                type = validateTypeList(type);
+            } else {
+                throw std::runtime_error("expected type, found:" + toString(lex.peek(0)));
+            }
+            val = parse(lex);
+            TokenNode binding = TokenNode{cons(sym, cons(type, cons(val, TokenList{})))};
+            auto ast = std::make_shared<AstNode>(binding);
+            Token root = Token(TokenKind::LET_BINDING, Value(ast), lparen.line,lparen.column);
+            if (lex.peek(0).kind == TokenKind::RPAREN) {
+                (void) lex.next();
+                return TokenNode(root);
+            }
+            throw std::runtime_error("expected ')' to close binding, found:" + toString(lex.peek(0)));
+        }
+        throw std::runtime_error("expected ':' in binding type, found:" + toString(lex.peek(0)));
+    }
+    throw std::runtime_error("bindings must start with a symbol, found:" + toString(lex.peek(0)));
+}
+
+TokenNode parseLet(Lexer& lex) {
+    Token root = lex.next();
+    TokenNode expr, name = TokenNode{Token(TokenKind::SYMBOL,0,0)};
+    std::stack<TokenNode> bindings;
+    TokenList bindings_ = TokenList {};
+    if (lex.peek(0).kind == TokenKind::IDENT) { //named let branch
+        name = parse(lex);
+        Token name_;
+        if (isTokenNodeToken(name)){
+            name_ = std::get<Token>(name);
+        } else {
+            std::ostringstream oss;
+            oss << name;
+            throw std::runtime_error("expected a name for named let, found:" + oss.str());
+        }
+       
+        if (name_.kind == TokenKind::SYMBOL) {
+            if (lex.peek(0).kind == TokenKind::LPAREN){
+                (void) lex.next();
+                while (lex.peek(0).kind != TokenKind::RPAREN) {
+                    bindings.push(parseBinding(lex));
+                }
+                (void) lex.next(); //consume RPAREN
+                while (!bindings.empty()){
+                    bindings_ = cons(bindings.top(), bindings_);
+                    bindings.pop();
+                }
+            } else {
+                throw std::runtime_error("named " + toString(root.kind) + " not followed with bindings list, found:" + toString(lex.peek(0)));
+            } 
+        }
+    } else if (lex.peek(0).kind == TokenKind::LPAREN) { //regular let branch 
+        (void) lex.next();
+        while (lex.peek(0).kind != TokenKind::RPAREN) {
+            bindings.push(parseBinding(lex));
+        }
+        (void) lex.next(); //consume RPAREN
+        while (!bindings.empty()){
+            bindings_ = cons(bindings.top(), bindings_);
+            bindings.pop();
+        }
+    } else {
+        throw std::runtime_error(toString(root.kind) +" bindings must begin with a name or a bindings list, found:" + toString(lex.peek(0)));
+    }
+    expr = parse(lex);
+    return TokenNode{cons(TokenNode{root},cons(name, cons(TokenNode{bindings_}, cons(expr, TokenList{}))))};
+}
 
 TokenNode parse(Lexer& lex) {
     switch(lex.peek(0).kind) {
@@ -370,9 +504,23 @@ TokenNode parse(Lexer& lex) {
                     return parseLambda(lex);
                 case TokenKind::DEFINE:
                     return parseDefine(lex);
+                case TokenKind::QUOTE:
+                case TokenKind::QQUOTE:
+                case TokenKind::UNQUOTE:
+                case TokenKind::UNQUOTESPLICE:
+                    return parseQuote(lex);
+                case TokenKind::LET:
+                case TokenKind::LETS:
+                case TokenKind::LETR:
+                    return parseLet(lex);
                 default :
                     return TokenNode{parseList(lex)};
             }
+        case TokenKind::QUOTE:
+        case TokenKind::QQUOTE:
+        case TokenKind::UNQUOTE:
+        case TokenKind::UNQUOTESPLICE:
+            return parseQuote(lex);
         case TokenKind::IDENT:
             return unwrapIdent(lex);
         default:

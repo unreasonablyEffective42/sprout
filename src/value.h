@@ -62,6 +62,7 @@ bool isRational(const Value& val);
 bool isSymbol(const Value& val);
 bool isFunction(const Value& val);
 bool isConditional(const Value& val);
+bool isAstPtr(const Value& val);
 bool isComplex(const Value& val);
 
 extern Value nil;

@@ -6,7 +6,7 @@
 #include <variant>
 #include <type_traits>
 
-const char* toString(TokenKind k) {
+std::string toString(TokenKind k) {
     switch(k) {
         case TokenKind::END:           return "END";
         case TokenKind::NUMBER:        return "NUMBER";
@@ -28,6 +28,7 @@ const char* toString(TokenKind k) {
         case TokenKind::LET:           return "LET";
         case TokenKind::LETS:          return "LETS";
         case TokenKind::LETR:          return "LETR";
+        case TokenKind::LET_BINDING:   return "LET_BINDING";
         case TokenKind::LPAREN:        return "LPAREN";
         case TokenKind::RPAREN:        return "RPAREN";
         case TokenKind::COLON:         return "COLON";

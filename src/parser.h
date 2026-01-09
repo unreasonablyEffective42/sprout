@@ -30,12 +30,17 @@ inline bool isAtom(const Token& tok) {
 void promoteIdent(Lexer& lex);
 TokenNode validateParams(const TokenNode& params);
 TokenNode validateTypeList(const TokenNode& types);
+bool validateQuote(const TokenNode& node, int depth);
+bool validateQuoteList(const TokenList& lst, int depth);
+
 
 TokenNode unwrapIdent(Lexer& lex);
 TokenNode parseCond(Lexer& lex);
 TokenNode parseLambda(Lexer& lex);
 TokenList parseList(Lexer& lex);
-TokenNode parseType(Lexer& lex);
+TokenNode parseLet(Lexer& lex);
 TokenNode parseDefine(Lexer& lex);
-
+TokenNode parseQuote(Lexer& lex);
+TokenNode parseBinding(Lexer& lex);
+TokenNode parseLet(Lexer& lex);
 TokenNode parse(Lexer& lex);
