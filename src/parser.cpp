@@ -80,6 +80,7 @@ TokenNode parseCond(Lexer& lex) {
             cond = cons(TokenNode{clause}, cond);
             clauses.pop();
         }
+        (void) lex.next(); //consume closing RPAREN;
         return cons(TokenNode{cond_}, cond);
     }
     throw std::runtime_error("bad cond form, clauses must be lists of two expressions, found no list at line:" + std::to_string(lex.peek(0).line) + " column:" +std::to_string(lex.peek(0).column));
@@ -96,6 +97,7 @@ TokenNode parseLambda(Lexer& lex) {
                 "lambda expressions may only have one body expression, found:" + toString(lex.peek(0))
             );
         }
+        (void) lex.next(); //consume closing rparen 
         return TokenNode{
             cons(TokenNode{lambda_},
                 cons(parameters, cons(body, TokenList{})))
@@ -126,11 +128,9 @@ TokenNode validateParams(const TokenNode& params) {
                     continue;
                 case 4:{
                     TokenNode node_ = validateTypeList(node);
-                    const TokenList& lst = asTokenList(node_);
-                    const TokenNode& headNode = head(lst);
-                    const Token& errtok = std::get<Token>(headNode);                   
+                    const Token& errtok = std::get<Token>(node_);
                     auto ast = std::make_shared<AstNode>(node_);
-                    Token ret = Token(TokenKind::RETURN_TYPE, Value(ast), errtok.line, errtok.column); //TODO revisit to add the line and col
+                    Token ret = Token(TokenKind::RETURN_TYPE, Value(ast), errtok.line, errtok.column);
                     TokenList params_ = cons(TokenNode{ret}, TokenList{});
 
                     while (!arguments.empty()) {
@@ -222,9 +222,8 @@ TokenNode validateTypeList(const TokenNode& types) {
         const Token& type = std::get<Token>(types);
         if(type.kind == TokenKind::TYPE_IDENT && type.value.has_value() && isAstPtr(*type.value)){
             return types;
-        } else {
-            throw std::runtime_error("expected type list, found: " + toString(type));
-        }
+        } 
+        throw std::runtime_error("expected type list, found: " + toString(type));
     }
     int state = 0;
     const TokenList& lst = asTokenList(types);
@@ -333,6 +332,7 @@ TokenNode parseDefine(Lexer& lex) {
             if (isTokenNodeList(type)) {
                 type = validateTypeList(type);
             }
+            (void) lex.next(); //consume closing rparen
             return TokenNode{cons(TokenNode{root}, cons(sym, cons(type, cons(expr, TokenList{}))))};
         }
 
@@ -342,6 +342,7 @@ TokenNode parseDefine(Lexer& lex) {
                 temp.value &&
                 std::get<Symbol>(temp.value->v).name == "lambda") {
                 TokenNode lambda = parse(lex);
+                (void) lex.next(); //consume closing rparen
                 return TokenNode{cons(TokenNode{root}, cons(sym, cons(lambda, TokenList{})))};
             }
             TokenNode type = parse(lex);
@@ -351,6 +352,7 @@ TokenNode parseDefine(Lexer& lex) {
                 auto ast = std::make_shared<AstNode>(type);
                 type = TokenNode{Token(TokenKind::TYPE_IDENT, Value(ast), 0, 0)};
             }
+            (void) lex.next(); //consume closing rparen
             return TokenNode{cons(TokenNode{root}, cons(sym, cons(type, cons(expr, TokenList{}))))};
         }
         default:
@@ -396,10 +398,8 @@ bool validateQuote(const TokenNode& node, int depth) {
 TokenNode parseQuote(Lexer& lex) {
     Token root = lex.next();
     TokenNode quoted = parse(lex);
-    int depth = (root.kind == TokenKind::QQUOTE) ? 1 : 0;
-    if (validateQuote(quoted,depth)) { return TokenNode{cons(TokenNode{root}, cons(quoted, TokenList {}))}; }
-    throw std::runtime_error("unreachable");
-} 
+    return TokenNode{cons(TokenNode{root}, cons(quoted, TokenList {}))};
+}
 /*
 (let ((x:int 0)
       (y:(int->int) (lambda (z:int -> int) expr)))
@@ -480,6 +480,7 @@ TokenNode parseLet(Lexer& lex) {
         throw std::runtime_error(toString(root.kind) +" bindings must begin with a name or a bindings list, found:" + toString(lex.peek(0)));
     }
     expr = parse(lex);
+    (void) lex.next(); //consume closing rparen
     return TokenNode{cons(TokenNode{root},cons(name, cons(TokenNode{bindings_}, cons(expr, TokenList{}))))};
 }
 
@@ -527,4 +528,3 @@ TokenNode parse(Lexer& lex) {
             throw std::runtime_error("error" + toString(lex.peek(0)));
     }
 }
-

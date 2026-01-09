@@ -43,7 +43,11 @@ void testParse() {
         std::cout << "String to parse: " << tc.src << std::endl;
         try {
             Lexer lex(tc.src);
-            std::cout << parse(lex) << std::endl;
+            TokenNode tree = parse(lex);
+            if (!validateQuote(tree, 0)) {
+                throw std::runtime_error("unquote outside quasiquote");
+            }
+            std::cout << tree << std::endl;
             if (tc.expect_error) {
                 std::cout << "ERROR: expected failure but parsed successfully" << std::endl;
             }
