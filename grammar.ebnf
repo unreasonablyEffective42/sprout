@@ -1,0 +1,262 @@
+(*
+  Typed Lisp Surface Syntax — Consolidated EBNF + Reader Rules (v0)
+  ---------------------------------------------------------------
+  Additions in this revision:
+  - Maybe/Option is an ADT (recommended prelude): (data Maybe (A) (Nothing) (Just (A)))
+  - Pattern matching with list patterns and dotted-tail patterns:
+      (x y z)       matches proper list of length 3
+      (x y . xs)    matches list with >=2 elems; xs is remaining tail
+      (x . z)       matches a cons cell / improper list tail
+  - Placeholder partial application in expressions:
+      '_' allowed ONLY as application argument placeholder; desugars to lambda.
+*)
+
+(* ------------------------- LEXICAL ------------------------- *)
+
+WS        ::= (" " | "\t" | "\r" | "\n")+ ;
+COMMENT   ::= ";" { any-char-except-newline } ;
+
+LPAREN    ::= "(" ;
+RPAREN    ::= ")" ;
+COLON     ::= ":" ;
+
+QUOTE_P      ::= "'" ;
+QQ_P         ::= "`" ;
+UNQSPLICE_P  ::= ",@" ;
+UNQUOTE_P    ::= "," ;
+
+ALPHA_U   ::= "A"…"Z" ;
+ALPHA_L   ::= "a"…"z" ;
+ALPHA     ::= ALPHA_U | ALPHA_L ;
+DIGIT     ::= "0"…"9" ;
+
+SIGN      ::= "+" | "-" ;
+UINT      ::= DIGIT { DIGIT } ;
+
+IDCHAR    ::= ALPHA | DIGIT | "?" ;
+IDENT     ::= ALPHA { IDCHAR } { "-" IDCHAR { IDCHAR } } ;
+
+TYCHAR    ::= ALPHA_L | DIGIT ;
+TYPE_IDENT ::= ALPHA_L { TYCHAR } { "-" TYCHAR { TYCHAR } } ;
+
+OPCHAR    ::= "+" | "-" | "*" | "/" | "%" | "^" | "<" | ">" | "=" | "!" | "|" | "\" | "." ;
+OPSYM     ::= OPCHAR { OPCHAR } ;
+
+BOOL      ::= "#t" | "#f" ;
+
+STRING    ::= "\"" { STR_CHAR } "\"" ;
+STR_CHAR  ::= ESCAPED | any-char-except-quote-or-newline ;
+ESCAPED   ::= "\" ( "\" | "\"" | "n" | "t" | "r" ) ;
+
+INT       ::= [SIGN] UINT ;
+FLOAT     ::= [SIGN] UINT "." UINT ;
+RATIONAL  ::= [SIGN] UINT "/" UINT ;
+
+REAL      ::= RATIONAL | FLOAT | INT ;
+
+IMAG_ONLY ::= [SIGN] [REAL] "i" ;
+REAL_IMAG ::= REAL ("+"|"-") [REAL] "i" ;
+COMPLEX   ::= IMAG_ONLY | REAL_IMAG ;
+
+PLACEHOLDER ::= "_" ;
+
+ATOM      ::= STRING | BOOL | COMPLEX | RATIONAL | FLOAT | INT | IDENT | OPSYM | PLACEHOLDER ;
+
+
+(* --------------------- READER MACROS ---------------------- *)
+
+(*
+  Reader desugaring:
+    '  X   => (quote X)
+    `  X   => (quasiquote X)
+    ,  X   => (unquote X)
+    ,@ X   => (unquote-splicing X)
+*)
+
+(* ------------------------- SYNTAX -------------------------- *)
+
+program        ::= { form } ;
+form           ::= expr ;
+
+expr           ::= atom
+                 | prefix_expr
+                 | list ;
+
+atom           ::= ATOM ;
+
+prefix_expr    ::= QUOTE_P expr
+                 | QQ_P expr
+                 | UNQSPLICE_P expr
+                 | UNQUOTE_P expr ;
+
+list           ::= LPAREN list_contents RPAREN ;
+
+list_contents  ::= special_form
+                 | { expr } ;                  (* application / general list *)
+
+
+(* ---------------------- SPECIAL FORMS ---------------------- *)
+
+special_form   ::= do_form
+                 | lambda_form
+                 | define_form
+                 | let_form
+                 | quote_form
+                 | quasiquote_form
+                 | unquote_form
+                 | unquote_splicing_form
+                 | cond_form
+                 | cons_form
+                 | shift_form
+                 | reset_form
+                 | force_form
+
+                 (* System F terms *)
+                 | tlam_form
+                 | tapp_form
+
+                 (* effects/handlers *)
+                 | perform_form
+                 | handle_form
+
+                 (* errors *)
+                 | error_form
+                 | raise_form
+                 | try_form
+
+                 (* equality *)
+                 | eqp_form
+                 | equalp_form
+
+                 (* ADTs / pattern matching *)
+                 | data_form
+                 | match_form
+                 ;
+
+do_form        ::= "do" expr { expr } ;
+cons_form      ::= "cons" expr expr ;
+shift_form     ::= "shift" expr ;
+reset_form     ::= "reset" expr ;
+force_form     ::= "force" expr ;
+
+quote_form            ::= "quote" expr ;
+quasiquote_form       ::= "quasiquote" expr ;
+unquote_form          ::= "unquote" expr ;
+unquote_splicing_form ::= "unquote-splicing" expr ;
+
+cond_form      ::= "cond" cond_clause { cond_clause } ;
+cond_clause    ::= LPAREN LPAREN expr RPAREN expr RPAREN ;
+
+
+(* -------------------- TYPED BINDINGS ----------------------- *)
+
+binder         ::= IDENT COLON type ;
+signature      ::= LPAREN { binder } "->" type RPAREN ;
+
+lambda_form    ::= "lambda" signature expr ;
+
+define_form        ::= "define" define_value
+                     | "define" define_function
+                     | "define" define_lambda ;
+
+define_value       ::= IDENT COLON type expr ;
+define_function    ::= IDENT signature expr ;
+define_lambda      ::= IDENT lambda_form ;
+
+let_form        ::= let_kw [ IDENT ] LPAREN { let_binding } RPAREN expr ;
+let_kw          ::= "let" | "lets" | "letr" ;
+let_binding     ::= LPAREN binder expr RPAREN ;
+
+
+(* -------------------------- TYPES -------------------------- *)
+
+NAT            ::= UINT ;
+
+type           ::= type_atom
+                 | type_compound ;
+
+type_atom      ::= TYPE_IDENT
+                 | IDENT ;                      (* type variables OR user type names *)
+
+type_compound  ::= vec_type
+                 | arrow_type
+                 | forall_type
+                 | type_ctor ;
+
+vec_type       ::= LPAREN "vec" type NAT RPAREN ;
+arrow_type     ::= LPAREN type "->" type { "->" type } RPAREN ;
+forall_type    ::= LPAREN "forall" LPAREN { IDENT } RPAREN type RPAREN ;
+
+type_ctor      ::= LPAREN (TYPE_IDENT | IDENT) { type | NAT } RPAREN ;
+
+
+(* -------------------- SYSTEM F (TERMS) --------------------- *)
+
+tlam_form      ::= "tlambda" LPAREN { IDENT } RPAREN expr ;
+tapp_form      ::= "tapply" expr type { type } ;
+
+
+(* ------------------- EFFECTS / HANDLERS -------------------- *)
+
+perform_form   ::= "perform" expr { expr } ;
+
+handle_form        ::= "handle" expr { handler_clause } return_clause ;
+handler_clause     ::= LPAREN IDENT LPAREN { IDENT } RPAREN IDENT expr RPAREN ;
+return_clause      ::= LPAREN "return" LPAREN IDENT RPAREN expr RPAREN ;
+
+
+(* ------------------------ ERRORS --------------------------- *)
+
+error_form     ::= "error" expr expr [ expr ] ;
+raise_form     ::= "raise" expr ;
+try_form       ::= "try" expr catch_clause ;
+catch_clause   ::= LPAREN "catch" LPAREN IDENT RPAREN expr RPAREN ;
+
+
+(* ----------------------- EQUALITY -------------------------- *)
+
+eqp_form       ::= "eq?" expr expr ;
+equalp_form    ::= "equal?" expr expr ;
+
+
+(* -------------------- ADTs / PATTERN MATCH -------------------- *)
+
+data_form      ::= "data" IDENT LPAREN { IDENT } RPAREN { ctor_decl } ;
+ctor_decl      ::= LPAREN IDENT [ LPAREN { type } RPAREN ] RPAREN ;
+
+match_form     ::= "match" expr { match_clause } ;
+match_clause   ::= LPAREN LPAREN pattern RPAREN expr RPAREN
+                 | LPAREN "else" expr RPAREN ;
+
+pattern        ::= PLACEHOLDER               (* wildcard '_' *)
+                 | IDENT                     (* binder OR ctor name (resolved later) *)
+                 | literal_pat
+                 | ctor_pat
+                 | list_pat ;
+
+ctor_pat       ::= LPAREN IDENT { pattern } RPAREN ;
+
+(* List patterns (Scheme-style):
+   - (p1 p2 p3) matches a proper list of length 3
+   - (p1 p2 . ptail) matches a list with >=2 elems, binding ptail to the remaining tail
+   - (phead . ptail) matches a cons cell / improper list
+*)
+list_pat       ::= LPAREN [ pattern_elems ] RPAREN ;
+pattern_elems  ::= pattern { pattern } [ dot_tail ] ;
+dot_tail       ::= "." pattern ;
+
+literal_pat    ::= INT | FLOAT | RATIONAL | COMPLEX | BOOL | STRING ;
+
+
+(* -------------------- SEMANTIC RESTRICTIONS -------------------- *)
+
+(*
+  - '_' in expressions is only legal as an application argument placeholder.
+    It is not a variable reference and cannot be bound.
+  - '_' in patterns is a wildcard and does not bind.
+  - Dotted list patterns use '.' as a separator token (lexed as OPSYM ".").
+  - In patterns, a bare IDENT binds a variable unless it resolves to a nullary constructor in scope.
+    (Recommendation: write nullary constructors as (Nothing) for clarity.)
+  - Type variables are IDENTs in type position; they must be bound by (forall ...) or (tlam ...).
+  - Continuations are one-shot in v0.
+*)

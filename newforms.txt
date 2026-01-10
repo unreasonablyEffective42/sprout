@@ -1,0 +1,138 @@
+
+; -----------------------------
+; ADTs: Maybe + List
+; -----------------------------
+
+(data Maybe (A)
+  (Nothing)
+  (Just (A)))
+
+(data List (A)
+  (Nil)
+  (Cons (A (List A))))
+
+; -----------------------------
+; Pattern matching (constructors)
+; -----------------------------
+
+(match m
+  (((Just x)) x)
+  (((Nothing)) 0)
+  (else -1))
+
+; Nested constructor patterns
+(match v
+  (((Just (Just x))) x)
+  (((Just (Nothing))) 1)
+  (((Nothing)) 0)
+  (else -1))
+
+; -----------------------------
+; Pattern matching (list patterns)
+; -----------------------------
+
+; Exact length 3: (a b c)
+(match xs
+  (((a b c)) (+ a (+ b c)))
+  (else 0))
+
+; Tail binding: (x y . rest)
+(match xs
+  (((x y . rest)) (cons x rest))
+  (else xs))
+
+; Pair / improper list: (x . y)
+(match p
+  (((x . y)) x)
+  (else 0))
+
+; Nested list patterns with tail
+(match xs
+  ((((a b) c . rest)) c)
+  (else -1))
+
+; Wildcard tail
+(match xs
+  (((x . _)) x)
+  (else 0))
+
+; -----------------------------
+; Equality
+; -----------------------------
+
+(eq? x y)
+(equal? x y)
+
+; -----------------------------
+; System F: forall / tlambda / tapply
+; -----------------------------
+
+; Polymorphic identity: forall A. A -> A
+(define id:(forall (A) (A -> A))
+  (tlambda (A)
+    (lambda (x:A -> A)
+      x)))
+
+; Instantiate id at int, then apply
+((tapply id int) 42)
+
+; Instantiate id at a compound type, then apply
+((tapply id (vec int 4)) myVec4)
+
+; Bind an instantiated version
+(let ((idInt (tapply id int)))
+  (idInt 42))
+
+; -----------------------------
+; Effects/handlers: perform / handle / return
+; -----------------------------
+
+(handle
+  (do (perform Log "hi") 0)
+  (Log (msg) k
+    (do (print msg)
+        (k 0)))
+  (return (r) r))
+
+; -----------------------------
+; Errors: error / raise / try / catch
+; -----------------------------
+
+(try
+  (raise (error 'Tag "boom" 123))
+  (catch (e) e))
+
+; -----------------------------
+; Partial application placeholder '_'
+; -----------------------------
+
+(define foo (x:int y:int -> int)
+  (+ x y))
+
+(let ((f (foo 2 _))
+      (g (foo _ 3)))
+  (do
+    (print (f 10))    ; expected 12
+    (print (g 10))    ; expected 13
+    0))
+
+; Multiple placeholders (left-to-right binding order)
+; Desugars to: (lambda (a b) (foo 2 a 4 b))
+(let ((h (foo 2 _ 4 _)))
+  (h 10 20))
+
+; -----------------------------
+; Existing core sanity checks (from your earlier examples)
+; -----------------------------
+
+(lambda (x:int -> int) (+ x 1))
+
+(cond (#t 3) (#f 4))
+
+(define x:int 3)
+
+(let ((x:int 0)
+      (y:(int->int) (lambda (z:int -> int) z)))
+  x)
+
+`(1 ,(+ 2 3) ,@(4 5 6))

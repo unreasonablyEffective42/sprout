@@ -45,6 +45,7 @@ static const std::regex RE_COMPLEX(
 static const std::string numsyms     = "+-/i.";
 static const std::string opsyms      = "+-*/^%$!&|=<>";
 static const std::string quoteStarts = "'`,";
+static const std::string arrow       = " ->";
 
 
 Value parseNumber(const std::string& candidate) {
@@ -167,7 +168,12 @@ Token lexSymbol(Lexer& lex) {
             parse+=lex.src[lex.pos];
             lex.pos++;
             lex.column++;
-            if (type_idents.contains(parse)) {break;}
+            if (type_idents.contains(parse) &&
+                lex.pos + 1 < lex.size &&
+                lex.src[lex.pos] == '-' &&
+                lex.src[lex.pos + 1] == '>') {
+                break;
+            }
         }
     } else if (opsyms.contains(lex.src[lex.pos])) {
          while(lex.pos < lex.size && opsyms.contains(lex.src[lex.pos])) {

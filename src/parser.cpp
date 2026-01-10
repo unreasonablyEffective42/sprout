@@ -57,7 +57,35 @@ void promoteIdent(Lexer& lex) {
             lex.swapCurrent(Token(TokenKind::FORCE, tok.line, tok.column));
         } else if (name == "do") {
             lex.swapCurrent(Token(TokenKind::DO, tok.line, tok.column));
-        }  else {
+        } else if (name == "forall") {
+            lex.swapCurrent(Token(TokenKind::FORALL, tok.line, tok.column));
+        } else if (name == "tlambda") {
+            lex.swapCurrent(Token(TokenKind::TLAMBDA, tok.line, tok.column));
+        } else if (name == "tapply") {
+            lex.swapCurrent(Token(TokenKind::TAPPLY, tok.line, tok.column));
+        } else if (name == "perform") {
+            lex.swapCurrent(Token(TokenKind::PERFORM, tok.line, tok.column));
+        } else if (name == "handle") {
+            lex.swapCurrent(Token(TokenKind::HANDLE, tok.line, tok.column));
+        } else if (name == "return") {
+            lex.swapCurrent(Token(TokenKind::RETURN, tok.line, tok.column));
+        } else if (name == "error") {
+            lex.swapCurrent(Token(TokenKind::ERROR, tok.line, tok.column));
+        } else if (name == "raise") {
+            lex.swapCurrent(Token(TokenKind::RAISE, tok.line, tok.column));
+        } else if (name == "try") {
+            lex.swapCurrent(Token(TokenKind::TRY, tok.line, tok.column));
+        } else if (name == "catch") {
+            lex.swapCurrent(Token(TokenKind::CATCH, tok.line, tok.column));
+        } else if (name == "eq?") {
+            lex.swapCurrent(Token(TokenKind::EQ, tok.line, tok.column));
+        } else if (name == "equal?") {
+            lex.swapCurrent(Token(TokenKind::EQUALS, tok.line, tok.column));
+        } else if (name == "match") {
+            lex.swapCurrent(Token(TokenKind::MATCH, tok.line, tok.column));
+        } else if (name == "data") {
+            lex.swapCurrent(Token(TokenKind::DATA, tok.line, tok.column));
+        } else {
             return;
         }
     } else {
@@ -398,8 +426,13 @@ bool validateQuote(const TokenNode& node, int depth) {
 TokenNode parseQuote(Lexer& lex) {
     Token root = lex.next();
     TokenNode quoted = parse(lex);
-    return TokenNode{cons(TokenNode{root}, cons(quoted, TokenList {}))};
-}
+    int depth = (root.kind == TokenKind::QQUOTE) ? 1 : 0;
+    if ((root.kind == TokenKind::UNQUOTE || root.kind == TokenKind::UNQUOTESPLICE) && depth == 0) {
+        throw std::runtime_error("unquote outside quasiquote" + toString(root));
+    }
+    if (validateQuote(quoted,depth)) { return TokenNode{cons(TokenNode{root}, cons(quoted, TokenList {}))}; }
+    throw std::runtime_error("unreachable");
+} 
 /*
 (let ((x:int 0)
       (y:(int->int) (lambda (z:int -> int) expr)))
@@ -483,7 +516,8 @@ TokenNode parseLet(Lexer& lex) {
     (void) lex.next(); //consume closing rparen
     return TokenNode{cons(TokenNode{root},cons(name, cons(TokenNode{bindings_}, cons(expr, TokenList{}))))};
 }
-
+//forall tlam tapp perform handle return error raise try catch eq? equal? data match else
+//
 TokenNode parse(Lexer& lex) {
     switch(lex.peek(0).kind) {
         case TokenKind::NUMBER:
@@ -493,6 +527,7 @@ TokenNode parse(Lexer& lex) {
         case TokenKind::NIL:
         case TokenKind::COLON:
         case TokenKind::ARROW:
+        case TokenKind::DOT:
         case TokenKind::TYPE_IDENT:
             return TokenNode{lex.next()};
         case TokenKind::LPAREN:
@@ -528,3 +563,4 @@ TokenNode parse(Lexer& lex) {
             throw std::runtime_error("error" + toString(lex.peek(0)));
     }
 }
+
