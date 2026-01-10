@@ -1,1 +1,1 @@
-TODO
+sprout is a purely functional, typed, lazy by default lisp based on system F with full recursion, TCO, and delimited continuations. Planned features include pattern matching, partial application, and both raw one-shot delimited continuations via shift/reset, but also user facing event handlers based on delimited continuations for generators, coroutines and cooperative multitasking. 
