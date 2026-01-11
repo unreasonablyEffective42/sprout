@@ -37,6 +37,7 @@ bool validateQuoteList(const TokenList& lst, int depth);
 TokenNode unwrapIdent(Lexer& lex);
 TokenNode parseCond(Lexer& lex);
 TokenNode parseLambda(Lexer& lex);
+TokenNode parseTypeLambda(Lexer& lex);
 TokenList parseList(Lexer& lex);
 TokenNode parseLet(Lexer& lex);
 TokenNode parseDefine(Lexer& lex);

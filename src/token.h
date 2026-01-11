@@ -46,6 +46,7 @@ enum class TokenKind {
   VAR_TYPE,
   TYPE_VAR,
   PARAM_LIST,
+  TYPE_PARAM_LIST,
   RETURN_TYPE,
   JUST,
   NOTHING,
@@ -63,6 +64,7 @@ enum class TokenKind {
   CATCH,
   DATA,
   MATCH,
+  PATTERN,
   EQ,
   EQUALS,
   SHIFT,
@@ -120,6 +122,7 @@ inline std::string toString(const Token& tok) {
 inline bool isEnd(const Token& tok) { return tok.kind == TokenKind::END; }
 inline bool isNumber(const Token& tok) { return tok.kind == TokenKind::NUMBER; }
 inline bool isIdent(const Token& tok) { return tok.kind == TokenKind::IDENT; }
+inline bool isSymbol(const Token& tok) { return tok.kind == TokenKind::SYMBOL; }
 inline bool isBool(const Token& tok) { return tok.kind == TokenKind::BOOL; }
 inline bool isChar(const Token& tok) { return tok.kind == TokenKind::CHAR; }
 inline bool isString(const Token& tok) { return tok.kind == TokenKind::STRING; }
@@ -136,20 +139,44 @@ inline bool isCons(const Token& tok) { return tok.kind == TokenKind::CONS; }
 inline bool isLet(const Token& tok) { return tok.kind == TokenKind::LET; }
 inline bool isLetS(const Token& tok) { return tok.kind == TokenKind::LETS; }
 inline bool isLetR(const Token& tok) { return tok.kind == TokenKind::LETR; }
+inline bool isLetBinding(const Token& tok) { return tok.kind == TokenKind::LET_BINDING; }
 inline bool isLParen(const Token& tok) { return tok.kind == TokenKind::LPAREN; }
 inline bool isRParen(const Token& tok) { return tok.kind == TokenKind::RPAREN; }
 inline bool isColon(const Token& tok) { return tok.kind == TokenKind::COLON; }
 inline bool isArrow(const Token& tok) { return tok.kind == TokenKind::ARROW; }
 inline bool isDot(const Token& tok) { return tok.kind == TokenKind::DOT; }
 inline bool isTypeIdent(const Token& tok) { return tok.kind == TokenKind::TYPE_IDENT; }
+inline bool isTypeList(const Token& tok) { return tok.kind == TokenKind::TYPE_LIST; }
 inline bool isVarType(const Token& tok) { return tok.kind == TokenKind::VAR_TYPE; }
+inline bool isTypeVar(const Token& tok) { return tok.kind == TokenKind::TYPE_VAR; }
+inline bool isParamList(const Token& tok) { return tok.kind == TokenKind::PARAM_LIST; }
 inline bool isReturnType(const Token& tok) { return tok.kind == TokenKind::RETURN_TYPE; }
+inline bool isJust(const Token& tok) { return tok.kind == TokenKind::JUST; }
+inline bool isNothing(const Token& tok) { return tok.kind == TokenKind::NOTHING; }
+inline bool isMaybe(const Token& tok) { return tok.kind == TokenKind::MAYBE; }
+inline bool isForall(const Token& tok) { return tok.kind == TokenKind::FORALL; }
+inline bool isPlaceholder(const Token& tok) { return tok.kind == TokenKind::PLACEHOLDER; }
+inline bool isTLambda(const Token& tok) { return tok.kind == TokenKind::TLAMBDA; }
+inline bool isTApply(const Token& tok) { return tok.kind == TokenKind::TAPPLY; }
+inline bool isPerform(const Token& tok) { return tok.kind == TokenKind::PERFORM; }
+inline bool isHandle(const Token& tok) { return tok.kind == TokenKind::HANDLE; }
+inline bool isReturn(const Token& tok) { return tok.kind == TokenKind::RETURN; }
+inline bool isError(const Token& tok) { return tok.kind == TokenKind::ERROR; }
+inline bool isRaise(const Token& tok) { return tok.kind == TokenKind::RAISE; }
+inline bool isTry(const Token& tok) { return tok.kind == TokenKind::TRY; }
+inline bool isCatch(const Token& tok) { return tok.kind == TokenKind::CATCH; }
+inline bool isData(const Token& tok) { return tok.kind == TokenKind::DATA; }
+inline bool isMatch(const Token& tok) { return tok.kind == TokenKind::MATCH; }
+inline bool isPattern(const Token& tok) {return tok.kind == TokenKind::PATTERN; }
+inline bool isEq(const Token& tok) { return tok.kind == TokenKind::EQ; }
+inline bool isEquals(const Token& tok) { return tok.kind == TokenKind::EQUALS; }
 inline bool isShift(const Token& tok) { return tok.kind == TokenKind::SHIFT; }
 inline bool isReset(const Token& tok) { return tok.kind == TokenKind::RESET; }
 inline bool isForce(const Token& tok) { return tok.kind == TokenKind::FORCE; }
 inline bool isDo(const Token& tok) { return tok.kind == TokenKind::DO; }
 inline bool isNil(const Token& tok) { return tok.kind == TokenKind::NIL; }
 inline bool isTokenList(const TokenList& lst) { return static_cast<bool>(lst); }
+inline bool isTypeParamList(const Token& tok) { return tok.kind == TokenKind::TYPE_PARAM_LIST; }
 
 inline bool isTokenNodeList(const TokenNode& node) {
     return std::holds_alternative<TokenList>(node);

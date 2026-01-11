@@ -164,16 +164,17 @@ Token lexSymbol(Lexer& lex) {
     };
     std::string parse = "";
     if (isalpha(lex.src[lex.pos])) {
-        while(lex.pos < lex.size && ((isdigit(lex.src[lex.pos]) || isalpha(lex.src[lex.pos])) || lex.src[lex.pos] == '-' || lex.src[lex.pos] == '?')){
-            parse+=lex.src[lex.pos];
-            lex.pos++;
-            lex.column++;
-            if (type_idents.contains(parse) &&
+        while (lex.pos < lex.size &&
+               ((isdigit(lex.src[lex.pos]) || isalpha(lex.src[lex.pos])) ||
+                lex.src[lex.pos] == '-' || lex.src[lex.pos] == '?')) {
+            if (lex.src[lex.pos] == '-' &&
                 lex.pos + 1 < lex.size &&
-                lex.src[lex.pos] == '-' &&
                 lex.src[lex.pos + 1] == '>') {
                 break;
             }
+            parse+=lex.src[lex.pos];
+            lex.pos++;
+            lex.column++;
         }
     } else if (opsyms.contains(lex.src[lex.pos])) {
          while(lex.pos < lex.size && opsyms.contains(lex.src[lex.pos])) {
@@ -274,6 +275,16 @@ Token lexDot(Lexer& lex) {
     throw std::runtime_error{"lexDot called after end of source"};
 }
 
+Token lexPlaceholder(Lexer& lex) {
+    int startColumn = lex.column;
+    if (lex.pos < lex.size) {
+        lex.pos++;
+        lex.column++;
+        return{TokenKind::PLACEHOLDER, lex.line, startColumn};
+    }
+    throw std::runtime_error{"lexPlaceholder called after end of source"};
+}
+
 Token Lexer::advance(){
     char cur, nxt;
     if (pos >= size) { 
@@ -312,7 +323,10 @@ Token Lexer::advance(){
                 break;   
             } else if (cur == '#') {
                 return lexBool(*this); 
-                break;   
+                break;
+            } else if (cur == '_') {
+                return lexPlaceholder(*this);
+                break;
             } else if (quoteStarts.contains(cur)){
                 return lexQuote(*this);
                 break;

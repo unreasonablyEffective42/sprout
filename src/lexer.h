@@ -26,6 +26,7 @@ Token lexArrow(Lexer& lex);
 Token lexColon(Lexer& lex);
 Token lexBool(Lexer& lex);
 Token lexDot(Lexer& lex);
+Token lexPlaceholder(Lexer& lex);
 Token lexQuote(Lexer& lex);
 
 

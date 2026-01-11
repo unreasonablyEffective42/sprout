@@ -136,7 +136,7 @@ TokenNode parseLambda(Lexer& lex) {
     );
 }
 
-//horrible state machine pattern <symbol colon type ...> arrow type
+//horrible state machine pattern <symbol colon <type or symbol> ...> arrow <type or symbol>
 TokenNode validateParams(const TokenNode& params) {
     int state = 0;
     const TokenList& lst = asTokenList(params);
@@ -213,20 +213,32 @@ TokenNode validateParams(const TokenNode& params) {
                     state++;
                     it++;
                     continue;
-                case 3: //expect TokenKind::TYPE_IDENT
-                    if (tok.kind != TokenKind::TYPE_IDENT) {throw std::runtime_error("expected type, found:" + toString(tok));}
-                    state=1;
-                    argument.push(TokenNode{tok});
-                    it++;
-                    continue;
-                case 4:
-                    if (tok.kind != TokenKind::TYPE_IDENT) {
+                case 3: //expect TokenKind::TYPE_IDENT or SYMBOL
+                    if (tok.kind == TokenKind::TYPE_IDENT) {
+                        state=1;
+                        argument.push(TokenNode{tok});
+                        it++;
+                        continue;
+                    } else if (tok.kind == TokenKind::SYMBOL) {
+                        state=1;
+                        argument.push(TokenNode{Token(TokenKind::TYPE_VAR, *tok.value, tok.line, tok.column)});
+                        it++;
+                        continue;
+                    } else {
                         throw std::runtime_error("expected type, found:" + toString(tok));
                     }
-                    auto ast = std::make_shared<AstNode>(TokenNode{tok});
+                case 4:
+
+                    if (tok.kind != TokenKind::TYPE_IDENT && tok.kind != TokenKind::SYMBOL) {
+                        throw std::runtime_error("expected type, found:" + toString(tok));
+                    }
+                    Token temp = tok;
+                    if (tok.kind == TokenKind::SYMBOL) {
+                        temp = Token(TokenKind::TYPE_VAR, *tok.value, tok.line, tok.column);
+                    }
+                    auto ast = std::make_shared<AstNode>(TokenNode{temp});
                     Token ret = Token(TokenKind::RETURN_TYPE, Value(ast), tok.line, tok.column);
                     TokenList params_ = cons(TokenNode{ret}, TokenList{});
-
                     while (!arguments.empty()) {
                         params_ = cons(TokenNode{arguments.top()}, params_);
                         arguments.pop();
@@ -262,7 +274,7 @@ TokenNode validateTypeList(const TokenNode& types) {
     while (it != end) {
         const TokenNode& node = *it;
         switch (state) {
-            case 0: // expect a type or a TokenList
+            case 0: // expect a type, a symbol or a TokenList
                 if (isTokenNodeList(node)) {
                     typeNodes.push(validateTypeList(node));
                     it++;
@@ -275,9 +287,15 @@ TokenNode validateTypeList(const TokenNode& types) {
                         it++;
                         state = 1;
                         continue;
+                    } else if (tok.kind == TokenKind::SYMBOL) {
+                        typeNodes.push(TokenNode{Token(TokenKind::TYPE_VAR, *tok.value, tok.line, tok.column)});
+                        it++;
+                        state = 1;
+                        continue;
+                    } else {
+                        throw std::runtime_error("expected type in type list, found: " + toString(tok));
                     }
-                    throw std::runtime_error("expected type in type list, found: " + toString(tok));
-                }
+                } 
                 break;
             case 1: // expect an arrow, or a type/tokenlist  
                 if (isTokenNodeToken(node)) {
@@ -293,6 +311,11 @@ TokenNode validateTypeList(const TokenNode& types) {
                          it++;
                          state = 2;
                          continue;
+                    } else if (tok.kind == TokenKind::SYMBOL) {
+                        typeNodes.push(TokenNode{Token(TokenKind::TYPE_VAR, *tok.value, tok.line, tok.column)});
+                        it++;
+                        state = 2;
+                        continue;
                     }
                 } else if (isTokenNodeList(node)) {
                         typeNodes.push(validateTypeList(node));
@@ -342,6 +365,9 @@ TokenNode unwrapIdent(Lexer& lex) {
         throw std::runtime_error("attempted to unwrap identifier with no value: " + toString(temp));
     }
     const auto& sym = std::get<Symbol>(temp.value->v);
+    if (sym.name == "else") {
+        return TokenNode{Token(TokenKind::BOOL, Value(true), temp.line, temp.column)};
+    }
     return TokenNode{Token(TokenKind::SYMBOL, Value(sym.name), temp.line, temp.column)};
 }
 
@@ -516,8 +542,57 @@ TokenNode parseLet(Lexer& lex) {
     (void) lex.next(); //consume closing rparen
     return TokenNode{cons(TokenNode{root},cons(name, cons(TokenNode{bindings_}, cons(expr, TokenList{}))))};
 }
-//forall tlam tapp perform handle return error raise try catch eq? equal? data match else
-//
+
+TokenNode validateTypeParams(const TokenNode& params) {
+    const TokenList& lst = asTokenList(params);
+    TokenListIterator it(lst);
+    TokenListIterator end(TokenList{});
+    std::stack<Token> parameters;
+    while(it != end ) {
+        const TokenNode& node = *it;
+        if (isTokenNodeToken(node)){
+            const Token& tok = std::get<Token>(node);
+            if (tok.kind == TokenKind::SYMBOL && tok.value) {
+                parameters.push(Token(TokenKind::TYPE_VAR, *tok.value, tok.line, tok.column));
+                it++;
+                continue;
+            }
+            throw std::runtime_error("expected type variable in parameters list for type lambda, found:" + toString(tok));
+        }
+        std::ostringstream oss;
+        oss << node;
+        throw std::runtime_error("expected flat parameter list in type lambda, found" + oss.str());
+    }
+    TokenList params_ = TokenList {};
+    if (parameters.empty()){
+        throw std::runtime_error("type lambdas cannot have no parameters");
+    }
+    while (!parameters.empty()) {
+        params_ = cons(TokenNode{parameters.top()}, params_);
+        parameters.pop();
+    }
+    auto ast = std::make_shared<AstNode>(TokenNode{params_});
+    return TokenNode{Token(TokenKind::TYPE_PARAM_LIST, Value(ast), 0, 0)};
+   
+}
+
+TokenNode parseTypeLambda(Lexer& lex) {
+    Token tlambda_ = lex.next();
+    if (lex.peek(0).kind == TokenKind::LPAREN) {
+        TokenNode parameters = parse(lex);
+        parameters = validateTypeParams(parameters);
+        TokenNode body = parse(lex);
+        if (lex.peek(0).kind != TokenKind::RPAREN) {
+            throw std::runtime_error(
+                "type lambda expressions may only have one body expression, found:" + toString(lex.peek(0))
+            );
+        }
+        (void) lex.next();
+        return TokenNode{cons(TokenNode{tlambda_}, cons(parameters, cons(body, TokenList {})))};
+    }
+    throw std::runtime_error("type lambda expressions must be followed by parameter list, found:" + toString(lex.peek(0)));
+}
+
 TokenNode parse(Lexer& lex) {
     switch(lex.peek(0).kind) {
         case TokenKind::NUMBER:
@@ -540,6 +615,8 @@ TokenNode parse(Lexer& lex) {
                     return parseLambda(lex);
                 case TokenKind::DEFINE:
                     return parseDefine(lex);
+                case TokenKind::TLAMBDA:
+                    return parseTypeLambda(lex);
                 case TokenKind::QUOTE:
                 case TokenKind::QQUOTE:
                 case TokenKind::UNQUOTE:

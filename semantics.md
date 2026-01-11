@@ -12,6 +12,13 @@
 - `(do e1 e2 ... en)` forces each `ei` sequentially (to WHNF), discards intermediate values,
   and returns the value of `en`.
 
+## 1.5) Typed let bindings
+
+- All `let/lets/letr` bindings require an explicit type annotation of the binder:
+  - `(x:T rhs)`
+- This applies even when `rhs` is a function value (including partial application).
+- Polymorphic values must also be annotated with a `forall` type at the binding site.
+
 ## 2) Delimited control and effects/handlers
 
 ### Backend core
@@ -61,8 +68,8 @@ Unmatched `perform` at top level is a runtime error.
 
 - Type variables must be explicitly bound:
   - in types via `(forall (A ...) type)`
-  - in terms via `(tlam (A ...) expr)`
-- Type application is explicit: `(tapp expr T1 T2 ...)`
+  - in terms via `(tlambda (A ...) expr)`
+- Type application is explicit: `(tapply expr T1 T2 ...)`
 - No implicit `forall` generalization in v0.
 
 ## 6) ADTs, Maybe, and pattern matching
@@ -77,7 +84,7 @@ Unmatched `perform` at top level is a runtime error.
   - `(Nothing)` and `(Just x)`.
 
 ### Match
-- `(match scrutinee ((Pat) body) ... (else body))`
+- `(match scrutinee (Pat body) ... (else body))`
 - The scrutinee is forced enough to determine its outer constructor/literal/cons-ness (WHNF).
 - If no clause matches and no `else`, runtime match error (v0).
 
@@ -88,8 +95,12 @@ Unmatched `perform` at top level is a runtime error.
 - constructor patterns: `(Just x)`, `(Cons h t)` etc.
 - list patterns (Scheme-style):
   - `(x y z)` matches a proper list length 3
-  - `(x y . xs)` matches list with >=2 elems; xs is tail
+  - `(x y . xs)` matches list with >=2 elems; xs is tail (proper or improper)
   - `(x . z)` matches cons cell / improper list
+
+### List/dotted literals
+- List literals and dotted pair/improper list literals are only constructed via
+  `quote`/`quasiquote` (reader forms `'` and `` ` ``).
 
 ## 7) Placeholder partial application
 
@@ -101,4 +112,5 @@ Example:
 - `(foo 2 _ 4 _)` desugars to `(lambda (a b) (foo 2 a 4 b))`
 
 Type rule:
-- Placeholder parameter types are derived from the callee’s function type during typechecking.
+- Placeholder parameter types are derived from the callee’s (instantiated) function type during typechecking.
+- If the callee is polymorphic (`forall`), it must be instantiated via `tapply` (or otherwise made monomorphic) before hole desugaring.

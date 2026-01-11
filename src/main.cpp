@@ -18,6 +18,10 @@ struct ParseCase {
 
 void printParseReference() {
     std::vector<std::string> samples = {
+        "(tlambda (A) body)",
+        "(tlambda (A B) (lambda (x:A y:B -> B) body))",
+        "(lambda (x:A y:B ->a) body)",
+        "(lambda (x:(A->B->A) y:int -> (A->B)) body)",
         "(lambda (x:int -> int) (+ x 1))",
         "(lambda (x:(int->int) -> (vec int 4)) (+ x 1))",
         "(cond (#t 3) (#f 4))",
@@ -28,9 +32,9 @@ void printParseReference() {
         "(let ((x:int 0) (y:(int->int) (lambda (z:int -> int) expr))) body)",
         "(letr loop ((x:(int->int) fun1) (y:(int->int) fun2)) body)",
         "(quote (1 2 3))",
-        "'(1 2 3)",
-        "`(1 ,(+ 2 3) ,@(4 5 6))",
-        "(define bar (x:float y:((int->bool)->(bool->float)->(float->bool->int)) -> (float->float)) body)"
+        "'(1 2 3)"
+        //"`(1 ,(+ 2 3) ,@(4 5 6))",
+        //"(define bar (x:float y:((int->bool)->(bool->float)->(float->bool->int)) -> (float->float)) body)"
     };
 
     std::cout << "Parse Reference" << std::endl;
@@ -106,7 +110,7 @@ void testLexArrow() {
 
 int main() {
 //    testLexArrow();
-//    printParseReference();
+    printParseReference();
 //    testParse();
     return 0;
 }

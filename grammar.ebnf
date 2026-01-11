@@ -225,7 +225,7 @@ data_form      ::= "data" IDENT LPAREN { IDENT } RPAREN { ctor_decl } ;
 ctor_decl      ::= LPAREN IDENT [ LPAREN { type } RPAREN ] RPAREN ;
 
 match_form     ::= "match" expr { match_clause } ;
-match_clause   ::= LPAREN LPAREN pattern RPAREN expr RPAREN
+match_clause   ::= LPAREN pattern expr RPAREN
                  | LPAREN "else" expr RPAREN ;
 
 pattern        ::= PLACEHOLDER               (* wildcard '_' *)
@@ -239,6 +239,7 @@ ctor_pat       ::= LPAREN IDENT { pattern } RPAREN ;
 (* List patterns (Scheme-style):
    - (p1 p2 p3) matches a proper list of length 3
    - (p1 p2 . ptail) matches a list with >=2 elems, binding ptail to the remaining tail
+     (tail may be proper or improper)
    - (phead . ptail) matches a cons cell / improper list
 *)
 list_pat       ::= LPAREN [ pattern_elems ] RPAREN ;
@@ -255,8 +256,10 @@ literal_pat    ::= INT | FLOAT | RATIONAL | COMPLEX | BOOL | STRING ;
     It is not a variable reference and cannot be bound.
   - '_' in patterns is a wildcard and does not bind.
   - Dotted list patterns use '.' as a separator token (lexed as OPSYM ".").
+  - Dotted list literal syntax is only meaningful inside quote/quasiquote.
   - In patterns, a bare IDENT binds a variable unless it resolves to a nullary constructor in scope.
     (Recommendation: write nullary constructors as (Nothing) for clarity.)
-  - Type variables are IDENTs in type position; they must be bound by (forall ...) or (tlam ...).
+  - let/lets/letr bindings require an explicit type annotation: (x:T rhs).
+  - Type variables are IDENTs in type position; they must be bound by (forall ...) or (tlambda ...).
   - Continuations are one-shot in v0.
 *)
