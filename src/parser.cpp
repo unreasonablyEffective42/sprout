@@ -476,6 +476,15 @@ TokenNode parseBinding(Lexer& lex){
             } else if (lex.peek(0).kind == TokenKind::LPAREN) {
                 type = parse(lex);
                 type = validateTypeList(type);
+            } else if (lex.peek(0).kind == TokenKind::IDENT){
+                TokenNode t = parse(lex); 
+                const Token& tok = std::get<Token>(t);
+                if (tok.kind == TokenKind::SYMBOL && tok.value){
+                    type = TokenNode{Token(TokenKind::TYPE_VAR, *tok.value, tok.line, tok.column)};
+                } else {
+                    throw std::runtime_error("expected a type var in type position, found:" + toString(tok));
+                }
+
             } else {
                 throw std::runtime_error("expected type, found:" + toString(lex.peek(0)));
             }
@@ -593,6 +602,41 @@ TokenNode parseTypeLambda(Lexer& lex) {
     throw std::runtime_error("type lambda expressions must be followed by parameter list, found:" + toString(lex.peek(0)));
 }
 
+TokenNode parseTypeApplication(Lexer& lex) {
+    Token tapply = lex.next();
+    TokenNode expr = parse(lex);
+
+    std::stack<TokenNode> types;
+    if (lex.peek(0).kind == TokenKind::RPAREN) {
+        throw std::runtime_error("attempted to apply type lambda to no types in:" + toString(tapply));
+    }
+
+    while (lex.peek(0).kind != TokenKind::RPAREN) {
+        TokenNode ty = parse(lex); // handles IDENT -> SYMBOL
+        if (isTokenNodeList(ty)) {
+            ty = validateTypeList(ty);
+        } else {
+            const Token& tok = std::get<Token>(ty);
+            if (tok.kind == TokenKind::SYMBOL && tok.value) {
+                ty = TokenNode{Token(TokenKind::TYPE_VAR, *tok.value, tok.line, tok.column)};
+            } else if (tok.kind != TokenKind::TYPE_IDENT) {
+                throw std::runtime_error("expected type in tapply, found:" + toString(tok));
+            }
+        }
+        types.push(ty);
+    }
+
+    (void) lex.next(); // consume ')'
+
+    TokenList types_ = TokenList{};
+    while (!types.empty()) {
+        types_ = cons(types.top(), types_);
+        types.pop();
+    }
+
+    return TokenNode{cons(TokenNode{tapply}, cons(expr, types_))};
+}
+
 TokenNode parse(Lexer& lex) {
     switch(lex.peek(0).kind) {
         case TokenKind::NUMBER:
@@ -617,6 +661,8 @@ TokenNode parse(Lexer& lex) {
                     return parseDefine(lex);
                 case TokenKind::TLAMBDA:
                     return parseTypeLambda(lex);
+                case TokenKind::TAPPLY:
+                    return parseTypeApplication(lex);
                 case TokenKind::QUOTE:
                 case TokenKind::QQUOTE:
                 case TokenKind::UNQUOTE:

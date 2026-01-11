@@ -24,12 +24,15 @@ void printParseReference() {
         "(lambda (x:(A->B->A) y:int -> (A->B)) body)",
         "(lambda (x:int -> int) (+ x 1))",
         "(lambda (x:(int->int) -> (vec int 4)) (+ x 1))",
+        "(tapply expr int A (A->B->C))",
+        /*
         "(cond (#t 3) (#f 4))",
         "(define x:int 3)",
         "(define x:(vec int 3) expr)",
         "(define foo (x:int y:int -> (int->int)) expr)",
         "(define foo (lambda (x:int y:int -> (int->int)) expr))",
-        "(let ((x:int 0) (y:(int->int) (lambda (z:int -> int) expr))) body)",
+        */
+        "(let ((x:int 0) (y:(A->int->A) (lambda (z:int -> int) expr))) body)",
         "(letr loop ((x:(int->int) fun1) (y:(int->int) fun2)) body)",
         "(quote (1 2 3))",
         "'(1 2 3)"
