@@ -35,7 +35,8 @@ void printParseReference() {
         "(let ((x:int 0) (y:(A->int->A) (lambda (z:int -> int) expr))) body)",
         "(letr loop ((x:(int->int) fun1) (y:(int->int) fun2)) body)",
         "(quote (1 2 3))",
-        "'(1 2 3)"
+        "'(1 2 3)",
+        "(define id:(forall (A) (A -> A)) (tlambda (A) (lambda (x:A -> A) x)))"
         //"`(1 ,(+ 2 3) ,@(4 5 6))",
         //"(define bar (x:float y:((int->bool)->(bool->float)->(float->bool->int)) -> (float->float)) body)"
     };

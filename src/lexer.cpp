@@ -300,7 +300,7 @@ Token Lexer::advance(){
             if (isspace(cur)){
                 skipWhitespace(*this);
                 continue;
-            } else if (isdigit(cur) || (cur == 'i' && nxt != 'n') || (nxt != '\0' && cur == '-' && (isdigit(nxt) || nxt == 'i'))) {
+            } else if (isdigit(cur) || (cur == 'i' && !isalpha(nxt)) || (nxt != '\0' && cur == '-' && (isdigit(nxt) || nxt == 'i'))) {
                 return lexNumber(*this); 
                 break;
             } else if (cur == '(' || cur == ')') {

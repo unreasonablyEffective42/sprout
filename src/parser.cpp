@@ -4,7 +4,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "ast.h"
-
+  
 #include <iostream>
 #include <stack>
 #include <stdexcept>
@@ -267,6 +267,10 @@ TokenNode validateTypeList(const TokenNode& types) {
     }
     int state = 0;
     const TokenList& lst = asTokenList(types);
+    const Token& headtok = std::get<Token>(head(lst));
+    if (headtok.kind == TokenKind::FORALL) {
+        return validateForall(types);
+    }
     TokenListIterator it(lst);
     TokenListIterator end(TokenList{});
     std::stack<TokenNode> typeNodes;
@@ -379,7 +383,7 @@ TokenNode parseDefine(Lexer& lex) {
     const TokenNode sym = parse(lex);
     switch (lex.peek(0).kind) {
         case TokenKind::COLON: { // (define x:int expr) or (define x:(vec int 3) expr)
-            (void) lex.next();
+            (void) lex.next(); 
             TokenNode type = parse(lex);
             TokenNode expr = parse(lex);
 
@@ -637,6 +641,30 @@ TokenNode parseTypeApplication(Lexer& lex) {
     return TokenNode{cons(TokenNode{tapply}, cons(expr, types_))};
 }
 
+TokenNode validateForall(const TokenNode& forall) {
+    const TokenList& lst = asTokenList(forall);
+    TokenListIterator it(lst);
+    TokenListIterator end(TokenList{});
+    Token forall_ = std::get<Token>(*it);
+    if (forall_.kind != TokenKind::FORALL) {
+        throw std::runtime_error("encountered: " + toString(forall_) + " in forall");
+    }
+    it++;
+    if (!isTokenNodeList(*it)) { throw std::runtime_error("expected type variable list, found:" + toString(std::get<Token>(*it))); }
+    TokenNode params = validateTypeParams(*it);
+    it++;
+    if (!isTokenNodeList(*it)) { throw std::runtime_error("expected type list, found:" + toString(std::get<Token>(*it))); }
+    TokenNode body = validateTypeList(*it);
+    it++;
+    if (it != end) { 
+        std::ostringstream oss;
+        oss << *it;
+        throw std::runtime_error("forall type expresssions may only have one body expression, found:" + oss.str());
+    }
+    auto ast = std::make_shared<AstNode>(TokenNode{cons(TokenNode{forall_}, cons(params, cons(body, TokenList {})))});
+    return TokenNode{Token(TokenKind::TYPE_IDENT, Value(ast), forall_.line, forall_.column)};
+}
+
 TokenNode parse(Lexer& lex) {
     switch(lex.peek(0).kind) {
         case TokenKind::NUMBER:
@@ -648,6 +676,7 @@ TokenNode parse(Lexer& lex) {
         case TokenKind::ARROW:
         case TokenKind::DOT:
         case TokenKind::TYPE_IDENT:
+        case TokenKind::FORALL:
             return TokenNode{lex.next()};
         case TokenKind::LPAREN:
             (void) lex.next(); //consume LPAREN 
