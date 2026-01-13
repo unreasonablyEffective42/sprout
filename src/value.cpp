@@ -51,10 +51,12 @@ std::ostream& operator<<(std::ostream& os, const Symbol& sym) {
 
 std::ostream& operator<<(std::ostream& os, const Function& fun) {
     os << "Function";
+    return os;
 }
 
 std::ostream& operator<<(std::ostream& os, const Conditional& fun) {
     os << "Cond";
+    return os;
 }
 
 std::ostream& operator<<(std::ostream& os, const Value& val) {

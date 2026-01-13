@@ -86,6 +86,8 @@ void promoteIdent(Lexer& lex) {
             lex.swapCurrent(Token(TokenKind::MATCH, tok.line, tok.column));
         } else if (name == "data") {
             lex.swapCurrent(Token(TokenKind::DATA, tok.line, tok.column));
+        } else if (name == "cons"){
+            lex.swapCurrent(Token(TokenKind::CONS, tok.line, tok.column));
         } else {
             return;
         }
