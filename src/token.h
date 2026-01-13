@@ -63,6 +63,7 @@ enum class TokenKind {
   TRY,
   CATCH,
   DATA,
+  CTOR_DECL,
   MATCH,
   PATTERN,
   PATTERN_CLAUSE,
@@ -167,6 +168,7 @@ inline bool isRaise(const Token& tok) { return tok.kind == TokenKind::RAISE; }
 inline bool isTry(const Token& tok) { return tok.kind == TokenKind::TRY; }
 inline bool isCatch(const Token& tok) { return tok.kind == TokenKind::CATCH; }
 inline bool isData(const Token& tok) { return tok.kind == TokenKind::DATA; }
+inline bool isCtorDecl(const Token& tok) { return tok.kind == TokenKind::CTOR_DECL; }
 inline bool isMatch(const Token& tok) { return tok.kind == TokenKind::MATCH; }
 inline bool isPattern(const Token& tok) { return tok.kind == TokenKind::PATTERN; }
 inline bool isPatternClause(const Token& tok) { return tok.kind == TokenKind::PATTERN_CLAUSE; }

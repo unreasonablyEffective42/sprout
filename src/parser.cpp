@@ -795,6 +795,99 @@ TokenNode parseMatch(Lexer& lex) {
     };
 }
 
+static TokenNode normalizeTypeNode(const TokenNode& node) {
+    if (isTokenNodeList(node)) {
+        return validateTypeList(node);
+    }
+    const Token& tok = std::get<Token>(node);
+    if (tok.kind == TokenKind::SYMBOL && tok.value) {
+        return TokenNode{Token(TokenKind::TYPE_VAR, *tok.value, tok.line, tok.column)};
+    }
+    if (tok.kind == TokenKind::TYPE_IDENT) {
+        return node;
+    }
+    throw std::runtime_error("expected type in constructor field, found " + toString(tok));
+}
+
+TokenNode validateCtorDecl(const TokenNode& ctor) {
+    Token locTok;
+    if (isTokenNodeList(ctor)) {
+        if (!firstTokenInNode(ctor, locTok)) {
+            throw std::runtime_error("unable to find a token in constructor");
+        }
+        TokenList lst = asTokenList(ctor);
+        if (size(lst) == 1 || size(lst) == 2) {
+            const TokenNode& nameNode = head(lst);
+            if (!isTokenNodeToken(nameNode)) {
+                throw std::runtime_error("constructor name must be an identifier");
+            }
+            const Token& nameTok = std::get<Token>(nameNode);
+            if (nameTok.kind != TokenKind::SYMBOL) {
+                throw std::runtime_error("constructor name must be an identifier, found " + toString(nameTok));
+            }
+
+            if (size(lst) == 1) {
+                TokenList ctorList = cons(nameNode, TokenList{});
+                auto decl = std::make_shared<AstNode>(TokenNode{ctorList});
+                return TokenNode{Token(TokenKind::CTOR_DECL, Value(decl), locTok.line, locTok.column)};
+            }
+
+            const TokenNode& fieldsNode = head(tail(lst));
+            if (!isTokenNodeList(fieldsNode)) {
+                throw std::runtime_error("constructor fields must be a list");
+            }
+            TokenList fields = std::get<TokenList>(fieldsNode);
+            std::stack<TokenNode> normalized;
+            for (TokenListIterator it(fields), end(TokenList{}); it != end; ++it) {
+                normalized.push(normalizeTypeNode(*it));
+            }
+            TokenList fieldList = TokenList{};
+            while (!normalized.empty()) {
+                fieldList = cons(normalized.top(), fieldList);
+                normalized.pop();
+            }
+
+            TokenList ctorList = cons(nameNode, cons(TokenNode{fieldList}, TokenList{}));
+            auto decl = std::make_shared<AstNode>(TokenNode{ctorList});
+            return TokenNode{Token(TokenKind::CTOR_DECL, Value(decl), locTok.line, locTok.column)};
+        }
+        throw std::runtime_error("constructor pattern list was of wrong arity:" + std::to_string(size(lst)));
+    } else {
+        throw std::runtime_error("expected list in sumtype declaration, found" + toString(std::get<Token>(ctor)));
+    }
+}
+
+TokenNode parseADT(Lexer& lex) {
+    Token data = lex.next();
+    TokenNode products, typeName;
+    std::stack<TokenNode> sums;
+    if(lex.peek(0).kind == TokenKind::IDENT) {
+        typeName = parse(lex);
+    } else {
+        throw std::runtime_error("expected an identifier in ADT declaration, found" + toString(lex.peek(0)));
+    }
+    if(lex.peek(0).kind == TokenKind::LPAREN) {
+        products = validateTypeParams(parse(lex));
+    } else {
+        throw std::runtime_error("expected list of product types in ADT declaration, found" + toString(lex.peek(0)));
+    }
+    while(lex.peek(0).kind != TokenKind::RPAREN) {
+        if (lex.peek(0).kind == TokenKind::LPAREN) {
+            sums.push(validateCtorDecl(parse(lex)));
+        } else {
+            throw std::runtime_error("expected constructor pattern in ADT declaration body, found:" + toString(lex.peek(0)));
+        }
+    }
+    (void) lex.next(); //discard RPAREN
+    TokenList constructors = TokenList {};
+    while (!sums.empty()) {
+        constructors = cons(sums.top(), constructors);
+        sums.pop();
+    } 
+    return TokenNode{cons(TokenNode{data},cons(typeName, cons(products, constructors)))};
+
+}
+
 TokenNode parse(Lexer& lex) {
     switch(lex.peek(0).kind) {
         case TokenKind::NUMBER:
@@ -834,6 +927,8 @@ TokenNode parse(Lexer& lex) {
                 case TokenKind::LETS:
                 case TokenKind::LETR:
                     return parseLet(lex);
+                case TokenKind::DATA:
+                    return parseADT(lex);
                 default :
                     return TokenNode{parseList(lex)};
             }
