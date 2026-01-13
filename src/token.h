@@ -65,6 +65,7 @@ enum class TokenKind {
   DATA,
   MATCH,
   PATTERN,
+  PATTERN_CLAUSE,
   EQ,
   EQUALS,
   SHIFT,
@@ -167,7 +168,8 @@ inline bool isTry(const Token& tok) { return tok.kind == TokenKind::TRY; }
 inline bool isCatch(const Token& tok) { return tok.kind == TokenKind::CATCH; }
 inline bool isData(const Token& tok) { return tok.kind == TokenKind::DATA; }
 inline bool isMatch(const Token& tok) { return tok.kind == TokenKind::MATCH; }
-inline bool isPattern(const Token& tok) {return tok.kind == TokenKind::PATTERN; }
+inline bool isPattern(const Token& tok) { return tok.kind == TokenKind::PATTERN; }
+inline bool isPatternClause(const Token& tok) { return tok.kind == TokenKind::PATTERN_CLAUSE; }
 inline bool isEq(const Token& tok) { return tok.kind == TokenKind::EQ; }
 inline bool isEquals(const Token& tok) { return tok.kind == TokenKind::EQUALS; }
 inline bool isShift(const Token& tok) { return tok.kind == TokenKind::SHIFT; }

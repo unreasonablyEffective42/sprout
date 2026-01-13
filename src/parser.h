@@ -32,6 +32,8 @@ TokenNode validateParams(const TokenNode& params);
 TokenNode validateTypeList(const TokenNode& types);
 TokenNode validateTypeParams(const TokenNode& params);
 TokenNode validateForall(const TokenNode& forall);
+TokenList validateDottedList(const TokenList& lst);
+TokenNode validatePatternClause(const TokenNode& patternClause);
 bool validateQuote(const TokenNode& node, int depth);
 bool validateQuoteList(const TokenList& lst, int depth);
 
@@ -46,5 +48,6 @@ TokenNode parseDefine(Lexer& lex);
 TokenNode parseQuote(Lexer& lex);
 TokenNode parseBinding(Lexer& lex);
 TokenNode parseLet(Lexer& lex);
+TokenNode parseMatch(Lexer& lex);
 TokenNode parseTypeApplication(Lexer& lex);
 TokenNode parse(Lexer& lex);

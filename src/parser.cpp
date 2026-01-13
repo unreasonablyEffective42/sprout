@@ -9,6 +9,7 @@
 #include <stack>
 #include <stdexcept>
 #include <sstream>
+#include <utility>
 
 TokenList parseList(Lexer& lex) { //called after consuming a LPAREN   
     std::stack<TokenNode> elems;
@@ -665,6 +666,135 @@ TokenNode validateForall(const TokenNode& forall) {
     return TokenNode{Token(TokenKind::TYPE_IDENT, Value(ast), forall_.line, forall_.column)};
 }
 
+TokenList validateDottedList(const TokenList& lst) {
+    if (!lst) {
+        return lst;
+    }
+    std::size_t len = 0;
+    std::size_t dot_pos = 0;
+    std::size_t dot_count = 0;
+    int line = 0;
+    for (TokenListIterator it(lst), end(TokenList{}); it != end; ++it) {
+        const TokenNode& node = *it;
+        ++len;
+        if (isTokenNodeToken(node)) {
+            const Token& tok = std::get<Token>(node);
+            if (len == 1) {
+                line = tok.line;
+            }
+            if (tok.kind == TokenKind::DOT) {
+                ++dot_count;
+                dot_pos = len;
+                if (dot_count > 1) {
+                    throw std::runtime_error(
+                        "list literals cannot contain more than one dot, at line:" +
+                        std::to_string(line)
+                    );
+                }
+            }
+        } else {
+            const TokenList& sub = std::get<TokenList>(node);
+            if (len == 1 && sub) {
+                // Best-effort line number from nested head.
+                const TokenNode& subHead = head(sub);
+                if (isTokenNodeToken(subHead)) {
+                    line = std::get<Token>(subHead).line;
+                }
+            }
+            validateDottedList(sub);
+        }
+    }
+    if (dot_count == 1) {
+        if (len < 3) {
+            throw std::runtime_error(
+                "dotted lists cannot be of size < 3, at line:" +
+                std::to_string(line)
+            );
+        }
+        if (dot_pos != len - 1) {
+            throw std::runtime_error(
+                "dotted list did not terminate in pattern (... . expr), at line:" +
+                std::to_string(line)
+            );
+        }
+    }
+    return lst;
+}
+
+static bool firstTokenInNode(const TokenNode& node, Token& out) {
+    if (isTokenNodeToken(node)) {
+        out = std::get<Token>(node);
+        return true;
+    }
+    const TokenList& lst = std::get<TokenList>(node);
+    for (TokenListIterator it(lst), end(TokenList{}); it != end; ++it) {
+        if (firstTokenInNode(*it, out)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+TokenNode validatePatternClause(const TokenNode& patternClause) {
+    TokenNode pattern, body;
+    if (!isTokenNodeList(patternClause)) {
+        std::ostringstream oss;
+        oss << patternClause;
+        throw std::runtime_error("pattern clause must be a list, found " + oss.str());
+    }
+    TokenList temp = std::get<TokenList>(patternClause);
+    if (size(temp) != 2) {
+        throw std::runtime_error("pattern clause must have 2 elements, found " + std::to_string(size(temp)));
+    }
+
+    const TokenNode& headNode = head(temp);
+    if (isTokenNodeList(headNode)) { // constructor or list pattern
+        TokenList pattern_ = validateDottedList(std::get<TokenList>(headNode));
+        pattern = TokenNode{pattern_};
+    } else if (isTokenNodeToken(headNode)) {
+        pattern = headNode;
+    } else {
+        throw std::runtime_error("unexpected pattern clause head");
+    }
+
+    body = head(tail(temp));
+
+    int line = 0;
+    int column = 0;
+    Token locTok;
+    if (firstTokenInNode(pattern, locTok)) {
+        line = locTok.line;
+        column = locTok.column;
+    }
+
+    auto pat = std::make_shared<AstNode>(pattern);
+    pattern = TokenNode{Token(TokenKind::PATTERN, Value(pat), line, column)};
+    TokenNode clause = TokenNode{cons(pattern, cons(body, TokenList{}))};
+    auto ast = std::make_shared<AstNode>(clause);
+    return TokenNode{Token(TokenKind::PATTERN_CLAUSE, Value(ast), line, column)};
+}
+
+TokenNode parseMatch(Lexer& lex) {
+    const Token match = lex.next();
+    TokenNode scrutinee = parse(lex);
+    std::stack<TokenNode> patternClauses;
+    while (lex.peek(0).kind != TokenKind::RPAREN) {
+        patternClauses.push(validatePatternClause(parse(lex)));
+    }
+    (void) lex.next(); //consume closing rparen;
+    TokenList clauses = TokenList {};
+    while (!patternClauses.empty()) {
+        clauses = cons(patternClauses.top(), clauses);
+        patternClauses.pop();
+    }
+    auto pattern = std::make_shared<AstNode>(scrutinee);
+    scrutinee = TokenNode{Token(TokenKind::PATTERN, Value(pattern), match.line, match.column)};
+    return TokenNode{
+        cons(TokenNode{Token(TokenKind::MATCH, match.line, match.column)},
+             cons(scrutinee, cons(TokenNode{clauses}, TokenList{})))
+    };
+}
+
 TokenNode parse(Lexer& lex) {
     switch(lex.peek(0).kind) {
         case TokenKind::NUMBER:
@@ -677,6 +807,7 @@ TokenNode parse(Lexer& lex) {
         case TokenKind::DOT:
         case TokenKind::TYPE_IDENT:
         case TokenKind::FORALL:
+        case TokenKind::PLACEHOLDER:
             return TokenNode{lex.next()};
         case TokenKind::LPAREN:
             (void) lex.next(); //consume LPAREN 
@@ -690,6 +821,8 @@ TokenNode parse(Lexer& lex) {
                     return parseDefine(lex);
                 case TokenKind::TLAMBDA:
                     return parseTypeLambda(lex);
+                case TokenKind::MATCH:
+                    return parseMatch(lex);
                 case TokenKind::TAPPLY:
                     return parseTypeApplication(lex);
                 case TokenKind::QUOTE:
@@ -715,4 +848,3 @@ TokenNode parse(Lexer& lex) {
             throw std::runtime_error("error" + toString(lex.peek(0)));
     }
 }
-

@@ -36,7 +36,18 @@ void printParseReference() {
         "(letr loop ((x:(int->int) fun1) (y:(int->int) fun2)) body)",
         "(quote (1 2 3))",
         "'(1 2 3)",
-        "(define id:(forall (A) (A -> A)) (tlambda (A) (lambda (x:A -> A) x)))"
+        "(define id:(forall (A) (A -> A)) (tlambda (A) (lambda (x:A -> A) x)))",
+        "(let ((f:(int->int->int) (foo _ 2 _ 3))) (f 3 5))",
+        "(1 . 3)",
+        "(1 2 3 . 4)",
+        "(match m ((Just x) x) ((Nothing) 0) (else -1))",
+        "(match v ((Just (Just x)) x) ((Just (Nothing)) 1) ((Nothing) 0) (else -1))",
+        "(match xs ((a b c) (+ a (+ b c))) (else 0))",
+        "(match xs ((x y . rest) (cons x rest)) (else xs))",
+        "(match p ((x . y) x) (else 0))",
+        "(match xs (((a b) c . rest) c) (else -1))",
+        "(match xs ((x . _) x) (else 0))",
+        "(match xs (42 x) (_ doThing) (else 0))"
         //"`(1 ,(+ 2 3) ,@(4 5 6))",
         //"(define bar (x:float y:((int->bool)->(bool->float)->(float->bool->int)) -> (float->float)) body)"
     };

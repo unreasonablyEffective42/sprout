@@ -57,7 +57,8 @@ std::string toString(TokenKind k) {
         case TokenKind::CATCH:           return "CATCH";
         case TokenKind::DATA:            return "DATA";
         case TokenKind::MATCH:           return "MATCH";
-        case TokenKind::PATTERN:           return "PATTERN";
+        case TokenKind::PATTERN:         return "PATTERN";
+        case TokenKind::PATTERN_CLAUSE:  return "PATTERN_CLAUSE";
         case TokenKind::EQ:              return "EQ";
         case TokenKind::EQUALS:          return "EQUALS";
         case TokenKind::SHIFT:           return "SHIFT";
