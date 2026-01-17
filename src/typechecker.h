@@ -3,10 +3,15 @@
 
 #include "ast_fwd.h"
 #include "cell.h"
+#include "rational.h"
 #include "token.h"
 #include "value.h"
+#include <complex.h>
 #include <iostream>
+#include <memory>
+#include <stack>
 #include <unordered_map>
+#include <vector>
 /*
   * String to parse: (define x:int 3)
 (TOKEN[ kind=DEFINE ], TOKEN[ kind=SYMBOL value=x ], TOKEN[ kind=TYPE_IDENT
@@ -45,7 +50,7 @@ value=int ]), TOKEN[ kind=RETURN_TYPE value=TOKEN[ kind=TYPE_IDENT value=int ]
 
   */
 struct TypeErr {
-  // todo
+    // TODO
 };
 
 /*
@@ -56,31 +61,68 @@ fun (t->t)
   */
 struct TypeConstSig;
 struct FunctSig;
+struct TypeVar;
 
 struct Type {
-  using T = std::variant<double, int, Rational, Complex, bool, char,
-                         std::string, FunctSig, TypeConstSig>;
-  T t;
+    using T =
+        std::variant<double, int, Rational, Complex, bool, char, std::string,
+                     std::shared_ptr<FunctSig>, std::shared_ptr<TypeConstSig>,
+                     std::shared_ptr<TypeVar>>;
+    T t;
+    Type();
+    Type(int i);
+    Type(Rational r);
+    Type(Complex c);
+    Type(bool b);
+    Type(char c);
+    Type(std::string str);
+    Type(std::shared_ptr<FunctSig> f);
+    Type(std::shared_ptr<TypeConstSig> c);
+    Type(std::shared_ptr<TypeVar> v);
+};
+
+Type makeFunctSig(const TokenNode &root);
+
+Type makeTypeConstSig(const TokenNode &root);
+
+struct TypeVar {
+    std::string name;
+    TypeVar();
+    TypeVar(std::string str);
 };
 
 struct FunctSig {
-  std::vector<Cell<Value, Value>> params;
-  std::vector<Type> signature;
+    std::vector<Cell<Value, Value>> params;
+    std::vector<Type> signature;
+    FunctSig();
+    FunctSig(std::vector<Cell<Value, Value>> params_,
+             std::vector<Type> signature_);
 };
 
-struct TypeConstructSig {
-  std::string name;
-  Type datatype;
-  Type size;
+struct TypeConstSig {
+    std::string name;
+    std::vector<Type> typeArgs;
+    std::vector<int> natArgs;
+
+    TypeConstSig();
+    TypeConstSig(std::string name_, std::vector<Type> typeArgs_,
+                 std::vector<int> natArgs_);
 };
-struct Tp {};
 
 struct TypeFrame {
-  std::unordered_map<std::string, Type> bindings;
+    std::unordered_map<std::string, Type> bindings;
+    TypeFrame();
+    TypeFrame(std::unordered_map<std::string, Type> bindings_);
 };
 
+void insertBinding(std::string symbol, Type type, TypeFrame frame);
+
 struct TypeEnv {
-  std::stack<TypeFrame> frames;
+    std::stack<TypeFrame> frames;
+    TypeEnv();
+    TypeEnv(std::stack<TypeFrame> frames_);
 };
+
+void insertFrame(TypeFrame &frame, TypeEnv &env);
 
 #endif // !TYPE_CHECKER_H

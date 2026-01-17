@@ -16,40 +16,40 @@ template <typename CarT, typename CdrT = CarT> struct Cell;
 using List = std::shared_ptr<const Cell<Value, Value>>;
 
 struct Symbol {
-  std::string name;
-  Symbol(std::string name_);
+    std::string name;
+    Symbol(std::string name_);
 };
 
 struct Function {
-  AstPtr params;
-  AstPtr body;
-  //    EnvPtr env;
+    AstPtr params;
+    AstPtr body;
+    //    EnvPtr env;
 };
 
 struct Conditional {
-  AstPtr clauses;
-  //   EnvPtr env
+    AstPtr clauses;
+    //   EnvPtr env
 };
 
 struct Value {
-  using V =
-      std::variant<double, int, Rational, Complex, bool, char, std::string,
-                   Symbol, Function, AstPtr, Conditional, List>;
-  V v;
+    using V =
+        std::variant<double, int, Rational, Complex, bool, char, std::string,
+                     Symbol, Function, AstPtr, Conditional, List>;
+    V v;
 
-  Value();
-  Value(int i);
-  Value(double n);
-  Value(Rational r);
-  Value(Complex cx);
-  Value(bool b);
-  Value(char c);
-  Value(std::string s);
-  Value(Symbol sym);
-  Value(Function fun);
-  Value(Conditional cont);
-  Value(AstPtr ptr);
-  Value(List l);
+    Value();
+    Value(int i);
+    Value(double n);
+    Value(Rational r);
+    Value(Complex cx);
+    Value(bool b);
+    Value(char c);
+    Value(std::string s);
+    Value(Symbol sym);
+    Value(Function fun);
+    Value(Conditional cont);
+    Value(AstPtr ptr);
+    Value(List l);
 };
 
 bool isNil(const Value &val);
