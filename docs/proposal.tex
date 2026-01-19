@@ -1,0 +1,78 @@
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+
+\title{Honors Project Proposal\\CSC1061}
+\author{Jordan Jacobson}
+\date{January 21, 2026}
+
+\begin{document}
+\singlespacing
+\maketitle
+
+\section*{Project Scope}
+
+Implement a typed Lisp compiler and VM for Sprout.
+The project focuses on a purely functional, lazy-by-default core, a System F type system,
+static compilation, and delimited continuations as the central control structure, alongside
+advanced effects/handlers.
+
+The core implementation will include a reader/parser for the surface syntax, a typechecker for
+explicit System F style types, a bytecode compiler, and a stack-based VM that supports lazy
+evaluation with memoized thunks, all implemented in C++. The runtime will use a basic reference
+counting system with a mark-sweep collector for cyclic structures. A REPL or interpreted mode may
+run on top of the VM.
+
+A listing of final language features, build and usage instructions, and a set of example programs
+will be provided. All source code and supplementary materials will be available in the sprout
+repository at https://github.com/unreasonablyEffective42/sprout
+
+\section*{Minimum Functionality}
+
+\begin{itemize}
+\item Core data types: Int, Float, Rational, Complex, Bool, String\\
+  \texttt{42}\quad \texttt{3.14}\quad \texttt{5/7}\quad \texttt{2+3i}\quad \texttt{\#t}\quad \texttt{"hi"}
+\item Symbols/identifiers and lists\\
+  \texttt{foo}\quad \texttt{(list 1 2 3)}\quad \texttt{'(a b c)}
+\item Lambda, define, and application\\
+  \texttt{(define inc (lambda ((x:Int)->Int) (+ x 1)))}\quad \texttt{(inc 5)}
+\item Typed let/lets/letr bindings with required annotations\\
+  \texttt{(let ((x:Int 10)) (+ x 2))}
+\item Equality: eq? (identity) and equal? (structural)\\
+  \texttt{(eq? x y)}\quad \texttt{(equal? '(1 2) '(1 2))}
+\item Reader and parser for the surface syntax (including reader macros for quote, quasiquote,
+  unquote, unquote-splicing)\\
+  \texttt{'x}\quad \texttt{`(a ,b ,@c)}
+\item Lazy evaluation with sharing (call-by-need)\\
+  \texttt{(let ((x:Int (expensive))) (do x x))}
+\item Force and do forms with the specified evaluation behavior\\
+  \texttt{(do (force x) (force y) z)}
+\item System F constructs: forall types, tlambda, tapply\\
+  \texttt{(tlambda (A) (lambda ((x:A)->A) x))}\quad \texttt{(tapply id Int)}
+\item ADT declarations and constructors (data)\\
+  \texttt{(data Maybe (A) (Nothing) (Just (A)))}\quad \texttt{(Just 3)}
+\item Pattern matching with list patterns and dotted tails\\
+  \texttt{(match xs ((x y . rest) x) (else 0))}
+\item Errors: error values, raise, try/catch sugar\\
+  \texttt{(try (raise (error "IO" "fail")) (catch (e) e))}
+\item Delimited control: shift/reset with one-shot continuations\\
+  \texttt{(reset (+ 1 (shift k (k 2))))}
+\item Effects/handlers: perform, handle, return clause\\
+  \texttt{(handle (perform Op 1) (Op (x) k (k x)) (return (r) r))}
+\item Placeholder partial application using \texttt{\_}\\
+  \texttt{(define foo (lambda ((a:Int b:Int)->Int) (+ a b)))}\\
+  \texttt{(let ((bar:(Int->Int) (foo 10 \_))) (bar 5))}
+\item REPL and/or file execution\\
+  \texttt{sprout repl}\quad \texttt{sprout run examples/demo.spr}
+\end{itemize}
+
+\section*{Stretch Goals}
+
+\begin{itemize}
+\item Optimizer passes (inlining, strictness/forcing analysis)
+\item Expanded standard library and examples
+\item Better error reporting with source spans
+\item Testing harness for typechecking and runtime behaviors
+\end{itemize}
+
+\end{document}
