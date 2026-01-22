@@ -4,8 +4,10 @@
 #include "value.h"
 #include <utility>
 
-template <typename CarT, typename CdrT>
-struct Cell {
+// lisp style cons cell for building list and tree structures, either slot can
+// be an element or a cell itself
+
+template <typename CarT, typename CdrT> struct Cell {
     CarT car;
     CdrT cdr;
 
@@ -18,15 +20,15 @@ inline std::shared_ptr<const Cell<CarT, CdrT>> cons(CarT a, CdrT d) {
 }
 
 template <typename CarT, typename CdrT>
-inline const CarT& head(const std::shared_ptr<const Cell<CarT, CdrT>>& lst) {
+inline const CarT &head(const std::shared_ptr<const Cell<CarT, CdrT>> &lst) {
     return lst->car;
 }
 
 template <typename CarT, typename CdrT>
-inline const CdrT& tail(const std::shared_ptr<const Cell<CarT, CdrT>>& lst) {
+inline const CdrT &tail(const std::shared_ptr<const Cell<CarT, CdrT>> &lst) {
     return lst->cdr;
 }
 
-std::ostream& operator<<(std::ostream& os, const List& lst);
+std::ostream &operator<<(std::ostream &os, const List &lst);
 
 #endif

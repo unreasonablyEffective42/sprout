@@ -2,9 +2,8 @@
 #include "ast_fwd.h"
 
 #include <iostream>
-#include <complex>
 
-
+// Value Constructors using move semantics for RAII compliance
 Value::Value() : v(List{}) {}
 Value::Value(int i) : v(i) {}
 Value::Value(double n) : v(n) {}
@@ -19,47 +18,63 @@ Value::Value(Conditional cond) : v(std::move(cond)) {}
 Value::Value(AstPtr ast) : v(ast) {}
 Value::Value(List l) : v(std::move(l)) {}
 
-Symbol::Symbol(std::string name_){
-    this->name = name_;
-}
-bool isNil(const Value& val) {
+Symbol::Symbol(std::string name_) { this->name = name_; }
+
+// safely check if the value is the empty list
+bool isNil(const Value &val) {
     if (auto p = std::get_if<List>(&val.v)) {
         return !*p;
     }
     return false;
 }
 
-bool isDouble(const Value& val) { return std::holds_alternative<double>(val.v); }
-bool isBool(const Value& val) { return std::holds_alternative<bool>(val.v); }
-bool isString(const Value& val) { return std::holds_alternative<std::string>(val.v); }
-bool isChar(const Value& val) { return std::holds_alternative<char>(val.v); }
-bool isList(const Value& val) { return std::holds_alternative<List>(val.v); }
-bool isInt(const Value& val) { return std::holds_alternative<int>(val.v); }
-bool isRational(const Value& val) { return std::holds_alternative<Rational>(val.v); }
-bool isSymbol(const Value& val) { return std::holds_alternative<Symbol>(val.v); }
-bool isFunction(const Value& val) { return std::holds_alternative<Function>(val.v); }
-bool isConditional(const Value& val) { return std::holds_alternative<Conditional>(val.v); }
-bool isAstPtr(const Value& val) { return std::holds_alternative<AstPtr>(val.v); }
-bool isComplex(const Value& val) { return std::holds_alternative<Complex>(val.v); }
+bool isDouble(const Value &val) {
+    return std::holds_alternative<double>(val.v);
+}
+bool isBool(const Value &val) { return std::holds_alternative<bool>(val.v); }
+bool isString(const Value &val) {
+    return std::holds_alternative<std::string>(val.v);
+}
+bool isChar(const Value &val) { return std::holds_alternative<char>(val.v); }
+bool isList(const Value &val) { return std::holds_alternative<List>(val.v); }
+bool isInt(const Value &val) { return std::holds_alternative<int>(val.v); }
+bool isRational(const Value &val) {
+    return std::holds_alternative<Rational>(val.v);
+}
+bool isSymbol(const Value &val) {
+    return std::holds_alternative<Symbol>(val.v);
+}
+bool isFunction(const Value &val) {
+    return std::holds_alternative<Function>(val.v);
+}
+bool isConditional(const Value &val) {
+    return std::holds_alternative<Conditional>(val.v);
+}
+bool isAstPtr(const Value &val) {
+    return std::holds_alternative<AstPtr>(val.v);
+}
+bool isComplex(const Value &val) {
+    return std::holds_alternative<Complex>(val.v);
+}
 
 Value nil = {};
 
-std::ostream& operator<<(std::ostream& os, const Symbol& sym) {
+std::ostream &operator<<(std::ostream &os, const Symbol &sym) {
     os << "Symbol: " << sym.name;
     return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const Function& fun) {
+std::ostream &operator<<(std::ostream &os, const Function &fun) {
     os << "Function";
     return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const Conditional& fun) {
+std::ostream &operator<<(std::ostream &os, const Conditional &fun) {
     os << "Cond";
     return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const Value& val) {
+std::ostream &operator<<(std::ostream &os, const Value &val) {
     if (isNil(val)) {
         os << "()";
     } else if (isDouble(val)) {
@@ -92,17 +107,9 @@ std::ostream& operator<<(std::ostream& os, const Value& val) {
     return os;
 }
 
-bool operator==(const Symbol& a, const Symbol& b) {
-    return a.name == b.name;
-}
+bool operator==(const Symbol &a, const Symbol &b) { return a.name == b.name; }
 
-bool operator!=(const Symbol& a, const Symbol& b) {
-    return a.name != b.name;
-}
+bool operator!=(const Symbol &a, const Symbol &b) { return a.name != b.name; }
 
-bool operator==(const Value& a, const Value& b) {
-    return a.v == b.v;
-}
-bool operator!=(const Value& a, const Value& b) {
-    return a.v != b.v;
-}
+bool operator==(const Value &a, const Value &b) { return a.v == b.v; }
+bool operator!=(const Value &a, const Value &b) { return a.v != b.v; }

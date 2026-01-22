@@ -1,6 +1,7 @@
 #ifndef SPROUT_LANG_VALUE_H
 #define SPROUT_LANG_VALUE_H
-
+// ast_fwd is a forward declaration of the AstPtr which wraps ast nodes to avoid
+// circular dependencey issues
 #include "ast_fwd.h"
 #include "complex.h"
 #include "rational.h"
@@ -9,23 +10,38 @@
 #include <ostream>
 #include <string>
 #include <variant>
-
+/*
+ * Value is a wrapper for a Variant over the core language types, the
+ * monomorphic ones in addition to constructed types and Algebrati Data Types
+ * using the astptr wrapper over astnodes
+ */
 struct Value;
 template <typename CarT, typename CdrT = CarT> struct Cell;
 
+/*
+ * linked list/tree structure over Values, will be emitted as the final
+ * intermediate representation after lowering before bytecode generation
+ */
 using List = std::shared_ptr<const Cell<Value, Value>>;
 
+/*
+ * wrapper struct over Symbols, ie labels in (define foo:type expr)  (let ((foo
+ * expr) ... additional bindings) expr) foo is a Symbol
+ */
 struct Symbol {
     std::string name;
     Symbol(std::string name_);
 };
 
+// Function wrapper over the parameter list and the body expression
 struct Function {
     AstPtr params;
     AstPtr body;
     //    EnvPtr env;
 };
 
+// Cond wrapper, list of clauses of form ((pred1 expr1) (pred2 expr2) ... (predn
+// exprn))
 struct Conditional {
     AstPtr clauses;
     //   EnvPtr env
@@ -68,6 +84,7 @@ bool isComplex(const Value &val);
 
 extern Value nil;
 
+// operator overloads
 std::ostream &operator<<(std::ostream &os, const Value &val);
 std::ostream &operator<<(std::ostream &os, const Symbol &sym);
 std::ostream &operator<<(std::ostream &os, const Function &fun);

@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-std::ostream& operator<<(std::ostream& os, const List& lst) {
+std::ostream &operator<<(std::ostream &os, const List &lst) {
     List temp = lst;
     os << '(';
     while (temp) {

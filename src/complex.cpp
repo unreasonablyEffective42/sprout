@@ -1,10 +1,9 @@
 #include "complex.h"
 
 #include <iostream>
-#include <cmath>
 #include <stdexcept>
 
-Complex cFromString(const std::string& str) {
+Complex cFromString(const std::string &str) {
     std::string s = str;
     if (s.empty() || s.back() != 'i') {
         throw std::invalid_argument("complex literal must end with 'i'");
@@ -39,7 +38,7 @@ Complex cFromString(const std::string& str) {
     return {std::stod(real), std::stod(imag)};
 }
 
-std::ostream& operator<<(std::ostream& os, const Complex& a){
+std::ostream &operator<<(std::ostream &os, const Complex &a) {
     if (a.re == 0 && a.im == 0) {
         os << "0";
         return os;
@@ -61,4 +60,3 @@ std::ostream& operator<<(std::ostream& os, const Complex& a){
     }
     return os;
 }
-

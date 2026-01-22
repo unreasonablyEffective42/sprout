@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <vector>
 
+/* work in progress does not compile much TODO */
 Type::Type(int i) { t = i; };
 Type::Type(Rational r) { t = r; };
 Type::Type(Complex c) { t = c; };
