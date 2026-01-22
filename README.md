@@ -6,10 +6,10 @@ To build just clone the repository and from the directory run make.
 
 Milestones 
 
-runtime types   done
-lexer           done 
-parser          done 
-typechecker     wip 
-lowering to IR 
-Stack vm        
-codegen         
+runtime types   done  <br>
+lexer           done  <br>
+parser          done  <br>
+typechecker     wip   <br>
+lowering to IR   <br>
+Stack vm         <br>
+codegen          <br>
